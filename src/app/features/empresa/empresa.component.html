@@ -1,0 +1,49 @@
+<div class="page">
+  <app-header />
+
+  <main class="container" style="max-width: 640px">
+    <div class="toolbar">
+      <h1>Empresa</h1>
+    </div>
+
+    <form class="card stack" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <label for="nombre">Nombre</label>
+      <input id="nombre" type="text" formControlName="nombre" />
+      @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+        <span class="field-error">El nombre es obligatorio.</span>
+      }
+
+      <label for="nit">NIT</label>
+      <input id="nit" type="text" formControlName="nit" />
+      @if (form.controls.nit.invalid && form.controls.nit.touched) {
+        <span class="field-error">El NIT es obligatorio.</span>
+      }
+
+      <label for="emailContacto">Correo de contacto</label>
+      <input id="emailContacto" type="email" formControlName="emailContacto" />
+      @if (form.controls.emailContacto.invalid && form.controls.emailContacto.touched) {
+        <span class="field-error">Ingresa un correo válido.</span>
+      }
+
+      <label class="check">
+        <input type="checkbox" formControlName="editorModificaEstructura" />
+        Los editores pueden crear, editar y eliminar pools y lanes
+      </label>
+
+      @if (errorMessage()) {
+        <p class="form-error" role="alert">{{ errorMessage() }}</p>
+      }
+      @if (okMessage()) {
+        <p class="form-ok" role="status">{{ okMessage() }}</p>
+      }
+
+      @if (esAdministrador()) {
+        <div class="actions-row">
+          <button type="submit" class="btn primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      }
+    </form>
+  </main>
+</div>

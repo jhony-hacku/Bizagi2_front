@@ -1,0 +1,47 @@
+<div class="page">
+  <app-header />
+
+  <main class="container">
+    <div class="toolbar">
+      <h1>Compartidos conmigo</h1>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Proceso</th>
+            <th>Empresa propietaria</th>
+            <th>Compartido desde</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of procesos(); track p.procesoId) {
+            <tr>
+              <td>
+                <strong>{{ p.nombre }}</strong>
+                <span class="sub">{{ p.categoria || 'Sin categoría' }}</span>
+              </td>
+              <td>{{ p.empresaPropietaria }}</td>
+              <td>{{ p.compartidoDesde | date: 'dd/MM/yyyy' }}</td>
+              <td class="acciones">
+                <a [routerLink]="['/procesos', p.procesoId, 'editor']">Ver diagrama</a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="vacio">
+                {{ loading() ? 'Cargando…' : 'Ninguna empresa ha compartido procesos contigo.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>

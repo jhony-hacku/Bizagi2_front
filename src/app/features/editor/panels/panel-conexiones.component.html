@@ -1,0 +1,221 @@
+@if (formulario(); as f) {
+  <section class="panel-form">
+    @switch (f) {
+      @case ('arco') {
+        <h3>{{ editandoId() ? 'Editar arco' : 'Nuevo arco' }}</h3>
+        <form class="stack" [formGroup]="formArco" (ngSubmit)="guardar()" novalidate>
+          <label for="arco-pool">Pool</label>
+          <select id="arco-pool" formControlName="poolId" [attr.disabled]="editandoId() ? true : null">
+            @for (p of poolsConNodos(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+
+          <label for="arco-origen">Origen</label>
+          <select id="arco-origen" formControlName="origenId">
+            @for (n of nodosDelPool(); track n.id) {
+              <option [ngValue]="n.id">{{ n.nombre }} ({{ n.etiqueta }})</option>
+            }
+          </select>
+          @if (formArco.controls.origenId.invalid && formArco.controls.origenId.touched) {
+            <span class="field-error">Selecciona el elemento de origen.</span>
+          }
+
+          <label for="arco-destino">Destino</label>
+          <select id="arco-destino" formControlName="destinoId">
+            @for (n of nodosDelPool(); track n.id) {
+              <option [ngValue]="n.id">{{ n.nombre }} ({{ n.etiqueta }})</option>
+            }
+          </select>
+          @if (formArco.controls.destinoId.invalid && formArco.controls.destinoId.touched) {
+            <span class="field-error">Selecciona el elemento de destino.</span>
+          }
+
+          <label for="arco-etiqueta">Etiqueta</label>
+          <input id="arco-etiqueta" type="text" formControlName="etiqueta" />
+
+          @if (pedirCondicion()) {
+            <label for="arco-condicion">Condición</label>
+            <input id="arco-condicion" type="text" formControlName="condicion" placeholder="monto > 1000" />
+          }
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+      @case ('mensaje') {
+        <h3>{{ editandoId() ? 'Editar mensaje' : 'Nuevo mensaje' }}</h3>
+        <form class="stack" [formGroup]="formMensaje" (ngSubmit)="guardar()" novalidate>
+          <label for="msg-nombre">Nombre del mensaje</label>
+          <input id="msg-nombre" type="text" formControlName="nombre" />
+          @if (formMensaje.controls.nombre.invalid && formMensaje.controls.nombre.touched) {
+            <span class="field-error">El nombre es obligatorio.</span>
+          }
+
+          <label for="msg-origen">Lo envía</label>
+          <select id="msg-origen" formControlName="origenId">
+            @for (o of origenesMensaje(); track o.id) {
+              <option [ngValue]="o.id">{{ o.nombre }} ({{ o.etiqueta }})</option>
+            } @empty {
+              <option [ngValue]="null" disabled>No hay eventos de lanzamiento ni actividades de envío</option>
+            }
+          </select>
+
+          <label for="msg-destino">Pool destino</label>
+          <select id="msg-destino" formControlName="destinoPoolId">
+            @for (p of poolsDestino(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }} ({{ etiquetaParticipante(p.id) }})</option>
+            }
+          </select>
+          @if (formMensaje.controls.destinoPoolId.invalid && formMensaje.controls.destinoPoolId.touched) {
+            <span class="field-error">Selecciona el pool destino.</span>
+          }
+
+          <label for="msg-contenido">Contenido (campos y tipo de dato)</label>
+          <textarea id="msg-contenido" rows="3" formControlName="contenido"></textarea>
+
+          @if (destinoExterno()) {
+            <label for="msg-tipo">Tipo de destino</label>
+            <select id="msg-tipo" formControlName="tipoDestino">
+              <option [ngValue]="null" disabled>Selecciona…</option>
+              @for (d of destinos; track d.valor) {
+                <option [value]="d.valor">{{ d.etiqueta }}</option>
+              }
+            </select>
+
+            <label for="msg-momento">Momento del proceso en que se envía</label>
+            <input id="msg-momento" type="text" formControlName="momento" />
+
+            <label for="msg-fallo">Si la notificación falla</label>
+            <select id="msg-fallo" formControlName="accionFallo">
+              <option [ngValue]="null" disabled>Selecciona…</option>
+              @for (a of fallos; track a.valor) {
+                <option [value]="a.valor">{{ a.etiqueta }}</option>
+              }
+            </select>
+
+            @if (derivaAError()) {
+              <label for="msg-error">Actividad de manejo de error</label>
+              <select id="msg-error" formControlName="actividadErrorId">
+                <option [ngValue]="null" disabled>Selecciona…</option>
+                @for (a of actividadesProceso(); track a.id) {
+                  <option [ngValue]="a.id">{{ a.nombre }}</option>
+                }
+              </select>
+            }
+          }
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+      @case ('correlacion') {
+        <h3>Correlación del mensaje</h3>
+        <form class="stack" [formGroup]="formCorrelacion" (ngSubmit)="guardar()" novalidate>
+          <label for="cor-criterio">Criterio (clave que une el mensaje con su caso)</label>
+          <input id="cor-criterio" type="text" formControlName="criterio" placeholder="idPedido" />
+          @if (formCorrelacion.controls.criterio.invalid && formCorrelacion.controls.criterio.touched) {
+            <span class="field-error">El criterio es obligatorio.</span>
+          }
+
+          <label for="cor-sin-caso">Si no hay un caso que coincida</label>
+          <select id="cor-sin-caso" formControlName="accionSinCaso">
+            @for (a of sinCaso; track a.valor) {
+              <option [value]="a.valor">{{ a.etiqueta }}</option>
+            }
+          </select>
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+    }
+  </section>
+} @else {
+  <div class="seccion-titulo">
+    <h3>Arcos</h3>
+    @if (puedeEditar()) {
+      <button type="button" class="btn" (click)="nuevoArco()">+ Arco</button>
+    }
+  </div>
+  <ul class="items">
+    @for (a of arcos(); track a.id) {
+      <li [class.sel]="seleccion()?.tipo === 'arco' && seleccion()?.id === a.id">
+        <div>
+          <strong>{{ a.origenNombre }} → {{ a.destinoNombre }}</strong>
+          @if (a.etiqueta || a.condicion) {
+            <span class="sub">{{ a.etiqueta }}{{ a.etiqueta && a.condicion ? ' · ' : '' }}{{ a.condicion }}</span>
+          }
+        </div>
+        <div class="acciones">
+          @if (puedeEditar()) {
+            <button type="button" class="link" (click)="editarArco(a.id)">Editar</button>
+          }
+          @if (puedeEliminar()) {
+            <button
+              type="button"
+              class="link danger"
+              (click)="eliminarArco(a.id, a.origenNombre + ' → ' + a.destinoNombre)"
+            >
+              Eliminar
+            </button>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="vacio-item">Sin arcos.</li>
+    }
+  </ul>
+
+  <div class="seccion-titulo">
+    <h3>Mensajes entre pools</h3>
+    @if (puedeEditar()) {
+      <button type="button" class="btn" (click)="nuevoMensaje()">+ Mensaje</button>
+    }
+  </div>
+  <ul class="items">
+    @for (m of mensajes(); track m.id) {
+      <li [class.sel]="seleccion()?.tipo === 'mensaje' && seleccion()?.id === m.id">
+        <div>
+          <strong>{{ m.nombre }}</strong>
+          <span class="sub">{{ m.origenNombre }} → {{ m.destinoNombre }}</span>
+          @if (m.tipoDestino) {
+            <span class="sub">Destino: {{ etiquetaDestino(m.tipoDestino) }}</span>
+          }
+          @if (m.correlacion) {
+            <span class="sub">Correlación: {{ m.correlacion.criterio }}</span>
+          }
+        </div>
+        <div class="acciones">
+          @if (puedeEditar()) {
+            <button type="button" class="link" (click)="editarMensaje(m.id)">Editar</button>
+            <button type="button" class="link" (click)="editarCorrelacion(m)">Correlación</button>
+          }
+          @if (puedeEliminar()) {
+            @if (m.correlacion) {
+              <button type="button" class="link danger" (click)="quitarCorrelacion(m)">Quitar correlación</button>
+            }
+            <button type="button" class="link danger" (click)="eliminarMensaje(m)">Eliminar</button>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="vacio-item">Sin mensajes.</li>
+    }
+  </ul>
+}

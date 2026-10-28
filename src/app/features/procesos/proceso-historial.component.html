@@ -1,0 +1,26 @@
+<div class="page">
+  <app-header />
+
+  <main>
+    <a class="volver" routerLink="/procesos">← Volver a procesos</a>
+    <h1>Historial{{ proceso() ? ' · ' + proceso()!.nombre : '' }}</h1>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="lista">
+      @for (e of entradas(); track e.id) {
+        <article>
+          <div class="cabecera">
+            <span class="accion">{{ e.accion }}</span>
+            <span class="meta">{{ e.usuarioNombre }} · {{ e.fecha | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <p>{{ e.detalle }}</p>
+        </article>
+      } @empty {
+        <p class="vacio">{{ loading() ? 'Cargando…' : 'Este proceso aún no tiene cambios registrados.' }}</p>
+      }
+    </div>
+  </main>
+</div>

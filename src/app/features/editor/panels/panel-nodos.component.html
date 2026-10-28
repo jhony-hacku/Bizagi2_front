@@ -1,0 +1,235 @@
+@if (formulario(); as f) {
+  <section class="panel-form">
+    <h3>
+      {{ editandoId() ? 'Editar' : 'Nuevo' }}
+      {{ f === 'actividad' ? 'actividad' : f === 'gateway' ? 'gateway' : 'evento' }}
+    </h3>
+
+    @switch (f) {
+      @case ('actividad') {
+        <form class="stack" [formGroup]="formActividad" (ngSubmit)="guardar()" novalidate>
+          <label for="act-pool">Pool</label>
+          <select id="act-pool" formControlName="poolId" [attr.disabled]="editandoId() ? true : null">
+            @for (p of poolsConProceso(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+
+          <label for="act-lane">Lane</label>
+          <select id="act-lane" formControlName="laneId">
+            @for (l of lanesDe(formActividad.controls.poolId.value); track l.id) {
+              <option [ngValue]="l.id">{{ l.nombre }}</option>
+            } @empty {
+              <option [ngValue]="null" disabled>El pool no tiene lanes</option>
+            }
+          </select>
+          @if (formActividad.controls.laneId.invalid && formActividad.controls.laneId.touched) {
+            <span class="field-error">Selecciona la lane de la actividad.</span>
+          }
+
+          <label for="act-nombre">Nombre</label>
+          <input id="act-nombre" type="text" formControlName="nombre" />
+          @if (formActividad.controls.nombre.invalid && formActividad.controls.nombre.touched) {
+            <span class="field-error">El nombre es obligatorio.</span>
+          }
+
+          <label for="act-tipo">Tipo</label>
+          <select id="act-tipo" formControlName="tipo">
+            @for (t of tiposActividad; track t.valor) {
+              <option [value]="t.valor">{{ t.etiqueta }}</option>
+            }
+          </select>
+
+          <label for="act-desc">Descripción</label>
+          <textarea id="act-desc" rows="2" formControlName="descripcion"></textarea>
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+      @case ('gateway') {
+        <form class="stack" [formGroup]="formGateway" (ngSubmit)="guardar()" novalidate>
+          <label for="gw-pool">Pool</label>
+          <select id="gw-pool" formControlName="poolId" [attr.disabled]="editandoId() ? true : null">
+            @for (p of poolsConProceso(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+
+          <label for="gw-nombre">Nombre</label>
+          <input id="gw-nombre" type="text" formControlName="nombre" />
+          @if (formGateway.controls.nombre.invalid && formGateway.controls.nombre.touched) {
+            <span class="field-error">El nombre es obligatorio.</span>
+          }
+
+          <label for="gw-tipo">Tipo</label>
+          <select id="gw-tipo" formControlName="tipoGateway">
+            @for (t of tiposGateway; track t.valor) {
+              <option [value]="t.valor">{{ t.etiqueta }}</option>
+            }
+          </select>
+          @if (formGateway.controls.tipoGateway.value === 'PARALELA' && editandoId()) {
+            <p class="nota">Al pasar a paralelo se eliminan las condiciones de los arcos de salida.</p>
+          }
+          @if (formGateway.controls.tipoGateway.value !== 'PARALELA') {
+            <p class="nota">Cada arco de salida necesita una condición. Se define en la pestaña Conexiones.</p>
+          }
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+      @case ('evento') {
+        <form class="stack" [formGroup]="formEvento" (ngSubmit)="guardar()" novalidate>
+          <label for="ev-pool">Pool</label>
+          <select id="ev-pool" formControlName="poolId" [attr.disabled]="editandoId() ? true : null">
+            @for (p of poolsConProceso(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+
+          <label for="ev-tipo">Tipo de evento</label>
+          <select id="ev-tipo" formControlName="tipoEvento">
+            @for (t of tiposEvento; track t.valor) {
+              <option [value]="t.valor">{{ t.etiqueta }}</option>
+            }
+          </select>
+
+          <label for="ev-nombre">
+            {{ esMensaje(formEvento.controls.tipoEvento.value) ? 'Nombre del mensaje' : 'Nombre' }}
+          </label>
+          <input id="ev-nombre" type="text" formControlName="nombre" />
+          @if (formEvento.controls.nombre.invalid && formEvento.controls.nombre.touched) {
+            <span class="field-error">El nombre es obligatorio.</span>
+          }
+
+          @if (esMensaje(formEvento.controls.tipoEvento.value)) {
+            <label for="ev-contenido">Contenido (campos y tipo de dato)</label>
+            <textarea
+              id="ev-contenido"
+              rows="3"
+              formControlName="contenido"
+              placeholder="idPedido: texto&#10;monto: número"
+            ></textarea>
+
+            <label for="ev-clave">Clave de correlación</label>
+            <input id="ev-clave" type="text" formControlName="claveCorrelacion" placeholder="idPedido" />
+          }
+
+          @if (esRecepcion(formEvento.controls.tipoEvento.value)) {
+            <label class="check">
+              <input type="checkbox" formControlName="origenExterno" />
+              El mensaje tiene origen externo
+            </label>
+
+            <span class="etiqueta">Actividades que usan los datos recibidos</span>
+            <div class="checks">
+              @for (a of actividadesDe(formEvento.controls.poolId.value); track a.id) {
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [checked]="usuarias().has(a.id)"
+                    (change)="alternarUsuaria(a.id, $any($event.target).checked)"
+                  />
+                  {{ a.nombre }}
+                </label>
+              } @empty {
+                <span class="sub">El pool no tiene actividades.</span>
+              }
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+          </div>
+        </form>
+      }
+    }
+  </section>
+} @else {
+  @if (puedeEditar()) {
+    <div class="botones-nuevo">
+      <button type="button" class="btn" (click)="nuevo('actividad')">+ Actividad</button>
+      <button type="button" class="btn" (click)="nuevo('gateway')">+ Gateway</button>
+      <button type="button" class="btn" (click)="nuevo('evento')">+ Evento</button>
+    </div>
+  }
+
+  @for (pool of diagrama().pools; track pool.id) {
+    @if (pool.actividades.length || pool.gateways.length || pool.eventos.length) {
+      <h3>{{ pool.nombre }}</h3>
+      <ul class="items">
+        @for (a of pool.actividades; track a.id) {
+          <li [class.sel]="seleccion()?.tipo === 'actividad' && seleccion()?.id === a.id">
+            <div>
+              <strong>{{ a.nombre }}</strong>
+              <span class="sub">{{ etiquetaActividad(a.tipo) }} · {{ nombreLane(pool, a.laneId) }}</span>
+            </div>
+            <div class="acciones">
+              @if (puedeEditar()) {
+                <button type="button" class="link" (click)="editar('actividad', a.id)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="link danger" (click)="eliminar('actividad', a.id, a.nombre)">
+                  Eliminar
+                </button>
+              }
+            </div>
+          </li>
+        }
+        @for (g of pool.gateways; track g.id) {
+          <li [class.sel]="seleccion()?.tipo === 'gateway' && seleccion()?.id === g.id">
+            <div>
+              <strong>{{ g.nombre }}</strong>
+              <span class="sub">Gateway {{ etiquetaGateway(g.tipoGateway) }}</span>
+            </div>
+            <div class="acciones">
+              @if (puedeEditar()) {
+                <button type="button" class="link" (click)="editar('gateway', g.id)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="link danger" (click)="eliminar('gateway', g.id, g.nombre)">
+                  Eliminar
+                </button>
+              }
+            </div>
+          </li>
+        }
+        @for (e of pool.eventos; track e.id) {
+          <li [class.sel]="seleccion()?.tipo === 'evento' && seleccion()?.id === e.id">
+            <div>
+              <strong>{{ e.nombre }}</strong>
+              <span class="sub">{{ etiquetaEvento(e.tipoEvento) }}</span>
+            </div>
+            <div class="acciones">
+              @if (puedeEditar()) {
+                <button type="button" class="link" (click)="editar('evento', e.id)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="link danger" (click)="eliminar('evento', e.id, e.nombre)">
+                  Eliminar
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  } @empty {
+    <p class="vacio">El proceso no tiene pools.</p>
+  }
+}

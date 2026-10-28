@@ -1,0 +1,137 @@
+<div class="page">
+  <app-header />
+
+  <main class="container">
+    <div class="toolbar">
+      <h1>Roles de proceso</h1>
+      @if (esAdministrador() && !formAbierto()) {
+        <button type="button" class="btn primary" (click)="nuevo()">Nuevo rol</button>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (okMessage()) {
+      <p class="form-ok" role="status">{{ okMessage() }}</p>
+    }
+
+    @if (formAbierto()) {
+      <form class="card stack" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <h2>{{ editando() ? 'Editar rol' : 'Nuevo rol' }}</h2>
+
+        <label for="nombre">Nombre</label>
+        <input id="nombre" type="text" formControlName="nombre" placeholder="Analista" />
+        @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+          <span class="field-error">El nombre es obligatorio (máximo 100 caracteres).</span>
+        }
+
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" rows="2" formControlName="descripcion"></textarea>
+
+        <div class="actions-row">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    }
+
+    <div class="filtros">
+      <input type="search" [formControl]="busqueda" placeholder="Buscar por nombre" aria-label="Buscar por nombre" />
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Uso</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of roles(); track r.id) {
+            <tr>
+              <td>
+                <strong>{{ r.nombre }}</strong>
+                @if (r.descripcion) {
+                  <span class="sub">{{ r.descripcion }}</span>
+                }
+              </td>
+              <td>
+                @if (r.enUso) {
+                  <button type="button" class="link" (click)="alternarProcesos(r)">
+                    En {{ r.procesos.length }} {{ r.procesos.length === 1 ? 'proceso' : 'procesos' }}
+                  </button>
+                } @else {
+                  <span class="badge ok">Sin uso · eliminable</span>
+                }
+              </td>
+              <td class="acciones">
+                <button type="button" class="link" (click)="verHistorial(r)">Historial</button>
+                @if (puedeEscribir()) {
+                  <button type="button" class="link" (click)="editar(r)">Editar</button>
+                }
+                @if (esAdministrador()) {
+                  <button type="button" class="link danger" (click)="eliminar(r)">Eliminar</button>
+                }
+              </td>
+            </tr>
+            @if (expandido() === r.id) {
+              <tr class="detalle">
+                <td colspan="3">
+                  <span class="sub">Procesos donde se usa:</span>
+                  <ul>
+                    @for (p of r.procesos; track p.id) {
+                      <li>{{ p.nombre }}</li>
+                    }
+                  </ul>
+                </td>
+              </tr>
+            }
+            @if (historialRol()?.id === r.id) {
+              <tr class="detalle">
+                <td colspan="3">
+                  <span class="sub">Historial de cambios:</span>
+                  <ul>
+                    @for (h of historial(); track h.id) {
+                      <li>
+                        <strong>{{ h.accion }}</strong> · {{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} ·
+                        {{ h.usuarioNombre }} — {{ h.detalle }}
+                      </li>
+                    } @empty {
+                      <li>Sin cambios registrados.</li>
+                    }
+                  </ul>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr>
+              <td colspan="3" class="vacio">{{ loading() ? 'Cargando…' : 'No hay roles que coincidan.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pageInfo().totalPages > 1) {
+      <nav class="paginacion" aria-label="Paginación">
+        <button type="button" class="btn" (click)="cargar(pageInfo().number - 1)" [disabled]="pageInfo().number === 0">
+          Anterior
+        </button>
+        <span>Página {{ pageInfo().number + 1 }} de {{ pageInfo().totalPages }} · {{ pageInfo().totalElements }} roles</span>
+        <button
+          type="button"
+          class="btn"
+          (click)="cargar(pageInfo().number + 1)"
+          [disabled]="pageInfo().number + 1 >= pageInfo().totalPages"
+        >
+          Siguiente
+        </button>
+      </nav>
+    }
+  </main>
+</div>

@@ -1,0 +1,40 @@
+<div class="page">
+  <app-header />
+
+  <main>
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h1>{{ editando ? 'Editar proceso' : 'Nuevo proceso' }}</h1>
+
+      <label for="nombre">Nombre</label>
+      <input id="nombre" type="text" formControlName="nombre" placeholder="Solicitud de vacaciones" />
+      @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+        <span class="field-error">El nombre es obligatorio (máximo 150 caracteres).</span>
+      }
+
+      <label for="descripcion">Descripción</label>
+      <textarea id="descripcion" formControlName="descripcion" rows="3"></textarea>
+
+      <label for="categoria">Categoría</label>
+      <input id="categoria" type="text" formControlName="categoria" placeholder="Recursos humanos" />
+
+      @if (editando) {
+        <label for="estado">Estado</label>
+        <select id="estado" formControlName="estado">
+          <option value="BORRADOR">Borrador</option>
+          <option value="PUBLICADO">Publicado</option>
+        </select>
+      }
+
+      @if (errorMessage()) {
+        <p class="form-error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <div class="acciones">
+        <a routerLink="/procesos">Cancelar</a>
+        <button type="submit" [disabled]="loading()">
+          {{ loading() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+  </main>
+</div>

@@ -1,0 +1,124 @@
+@if (formulario(); as f) {
+  <section class="panel-form">
+    @if (f === 'pool') {
+      <h3>{{ editandoId() ? 'Editar pool' : 'Nuevo pool' }}</h3>
+      <form class="stack" [formGroup]="formPool" (ngSubmit)="guardar()" novalidate>
+        <label for="pool-nombre">Nombre</label>
+        <input id="pool-nombre" type="text" formControlName="nombre" />
+        @if (formPool.controls.nombre.invalid && formPool.controls.nombre.touched) {
+          <span class="field-error">El nombre es obligatorio.</span>
+        }
+
+        <label for="pool-tipo">Participante</label>
+        <select id="pool-tipo" formControlName="tipoParticipante">
+          @for (t of participantes; track t.valor) {
+            <option [value]="t.valor">{{ t.etiqueta }}</option>
+          }
+        </select>
+        <p class="nota">Los participantes externos se dibujan como caja negra, sin elementos internos.</p>
+
+        @if (errorMessage()) {
+          <p class="form-error" role="alert">{{ errorMessage() }}</p>
+        }
+        <div class="actions-row">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+        </div>
+      </form>
+    } @else {
+      <h3>{{ editandoId() ? 'Editar lane' : 'Nueva lane' }}</h3>
+      <form class="stack" [formGroup]="formLane" (ngSubmit)="guardar()" novalidate>
+        <label for="lane-rol">Rol de proceso</label>
+        <select id="lane-rol" formControlName="rolProcesoId">
+          <option [ngValue]="null" disabled>Selecciona un rol…</option>
+          @for (r of roles(); track r.id) {
+            <option [ngValue]="r.id">{{ r.nombre }}</option>
+          }
+        </select>
+        @if (formLane.controls.rolProcesoId.invalid && formLane.controls.rolProcesoId.touched) {
+          <span class="field-error">Selecciona el rol de la lane.</span>
+        }
+
+        <label for="lane-nombre">Nombre (opcional)</label>
+        <input id="lane-nombre" type="text" formControlName="nombre" placeholder="Por defecto, el nombre del rol" />
+
+        @if (errorMessage()) {
+          <p class="form-error" role="alert">{{ errorMessage() }}</p>
+        }
+        <div class="actions-row">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn primary" [disabled]="guardando()">Guardar</button>
+        </div>
+      </form>
+    }
+  </section>
+} @else {
+  <div class="seccion-titulo">
+    <h3>Pools</h3>
+    @if (puedeEditar()) {
+      <button type="button" class="btn" (click)="nuevoPool()">+ Pool</button>
+    }
+  </div>
+
+  @for (pool of diagrama().pools; track pool.id) {
+    <div class="pool-card" [class.sel]="seleccion()?.tipo === 'pool' && seleccion()?.id === pool.id">
+      <div class="pool-cab">
+        <div>
+          <strong>{{ pool.nombre }}</strong>
+          <span class="sub">{{ etiquetaParticipante[pool.tipoParticipante] }}</span>
+        </div>
+        @if (puedeEditar()) {
+          <div class="acciones">
+            <button type="button" class="link" (click)="editarPool(pool.id)">Editar</button>
+            <button type="button" class="link danger" (click)="eliminarPool(pool)">Eliminar</button>
+          </div>
+        }
+      </div>
+
+      @if (pool.tipoParticipante === 'EMPRESA_PROPIETARIA' || pool.lanes.length) {
+        <ul class="items">
+          @for (lane of pool.lanes; track lane.id; let i = $index) {
+            <li
+              [class.sel]="seleccion()?.tipo === 'lane' && seleccion()?.id === lane.id"
+              [class.arrastrable]="puedeEditar()"
+              [class.destino]="destinoArrastre() === i"
+              [attr.draggable]="puedeEditar() ? 'true' : null"
+              (dragstart)="iniciarArrastre($event, pool, i)"
+              (dragover)="sobreLane($event, pool, i)"
+              (drop)="soltarLane($event, pool, i)"
+              (dragend)="finalizarArrastre()"
+            >
+              <div>
+                <strong>{{ lane.nombre }}</strong>
+                @if (lane.rolProceso) {
+                  <span class="sub">Rol: {{ lane.rolProceso }}</span>
+                }
+              </div>
+              @if (puedeEditar()) {
+                <div class="acciones">
+                  <button type="button" class="link" (click)="mover(pool, i, -1)" [disabled]="i === 0" aria-label="Subir lane">↑</button>
+                  <button
+                    type="button"
+                    class="link"
+                    (click)="mover(pool, i, 1)"
+                    [disabled]="i === pool.lanes.length - 1"
+                    aria-label="Bajar lane"
+                  >
+                    ↓
+                  </button>
+                  <button type="button" class="link" (click)="editarLane(pool, lane)">Editar</button>
+                  <button type="button" class="link danger" (click)="eliminarLane(lane)">Eliminar</button>
+                </div>
+              }
+            </li>
+          } @empty {
+            <li class="vacio-item">Sin lanes.</li>
+          }
+        </ul>
+        @if (puedeEditar()) {
+          <button type="button" class="btn chico" (click)="nuevaLane(pool)">+ Lane</button>
+        }
+      }
+    </div>
+  }
+}

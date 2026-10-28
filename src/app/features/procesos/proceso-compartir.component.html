@@ -1,0 +1,61 @@
+<div class="page">
+  <app-header />
+
+  <main class="container" style="max-width: 720px">
+    <a class="volver" routerLink="/procesos">← Volver a procesos</a>
+    <div class="toolbar" style="margin-top: 0.75rem">
+      <h1>Compartir{{ nombreProceso() ? ' · ' + nombreProceso() : '' }}</h1>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (okMessage()) {
+      <p class="form-ok" role="status">{{ okMessage() }}</p>
+    }
+
+    <form class="card stack" [formGroup]="form" (ngSubmit)="compartir()" novalidate>
+      <h2>Compartir con otra empresa</h2>
+      <label for="nit">NIT de la empresa</label>
+      <input id="nit" type="text" formControlName="nit" placeholder="900123456-7" />
+      @if (form.controls.nit.invalid && form.controls.nit.touched) {
+        <span class="field-error">El NIT es obligatorio.</span>
+      }
+      <p class="nota">La empresa invitada ve el diagrama en solo lectura. No accede a tus usuarios ni a tus roles.</p>
+      <div class="actions-row">
+        <button type="submit" class="btn primary" [disabled]="guardando()">
+          {{ guardando() ? 'Compartiendo…' : 'Compartir' }}
+        </button>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>NIT</th>
+            <th>Desde</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of invitadas(); track e.empresaId) {
+            <tr>
+              <td>{{ e.empresa }}</td>
+              <td>{{ e.nit }}</td>
+              <td>{{ e.compartidoDesde | date: 'dd/MM/yyyy' }}</td>
+              <td class="acciones">
+                <button type="button" class="link danger" (click)="dejarDeCompartir(e)">Dejar de compartir</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="vacio">Este proceso no se comparte con ninguna empresa.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>

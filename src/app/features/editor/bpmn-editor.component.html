@@ -1,0 +1,142 @@
+<div class="editor-page">
+  <header>
+    <button class="link-button" type="button" (click)="volver()">← Volver</button>
+    <h1>
+      Diagrama{{ diagrama() ? ' · ' + diagrama()!.proceso.nombre : '' }}
+      @if (diagrama(); as d) {
+        <span class="badge" [class.ok]="d.proceso.estado === 'PUBLICADO'">
+          {{ d.proceso.estado === 'PUBLICADO' ? 'Publicado' : 'Borrador' }}
+        </span>
+        @if (!d.proceso.propio) {
+          <span class="badge warn">Compartido · solo lectura</span>
+        }
+        @if (!d.proceso.activo) {
+          <span class="badge bad">Eliminado</span>
+        }
+      }
+    </h1>
+    <div class="actions">
+      <button type="button" (click)="zoom(-1)" aria-label="Alejar">−</button>
+      <button type="button" (click)="zoom(1)" aria-label="Acercar">+</button>
+      <button type="button" (click)="ajustar()">Ajustar</button>
+      <button type="button" (click)="exportarSvg()">Exportar SVG</button>
+      <button type="button" class="primary" (click)="exportarBpmn()">Exportar .bpmn</button>
+    </div>
+  </header>
+
+  @if (aviso(); as a) {
+    <p class="aviso" [class.ok]="a.tipo === 'ok'" [class.error]="a.tipo === 'error'" [class.warn]="a.tipo === 'warn'" role="status">
+      {{ a.texto }}
+      <button type="button" class="cerrar" (click)="aviso.set(null)" aria-label="Cerrar aviso">×</button>
+    </p>
+  }
+
+  @if (puedeEditar()) {
+    <div class="paleta" role="toolbar" aria-label="Paleta de elementos">
+      <span class="paleta-titulo">Arrastra al lienzo:</span>
+      @for (item of paleta; track item.clave) {
+        <div
+          class="item-paleta"
+          draggable="true"
+          [title]="item.etiqueta"
+          (dragstart)="iniciarArrastre($event, item)"
+        >
+          <span class="ico" [class]="'ico ico-' + item.icono"></span>
+          {{ item.etiqueta }}
+        </div>
+      }
+      <button
+        type="button"
+        class="modo-conectar"
+        [class.activo]="modoConectar()"
+        [attr.aria-pressed]="modoConectar()"
+        (click)="alternarConectar()"
+      >
+        {{ modoConectar() ? 'Conectando: arrastra de un elemento a otro' : 'Conectar elementos' }}
+      </button>
+    </div>
+  }
+
+  <div class="cuerpo">
+    <div
+      #canvas
+      class="canvas editor-canvas"
+      [class.conectando]="modoConectar()"
+      (dragover)="permitirSoltar($event)"
+      (drop)="soltarElemento($event)"
+    ></div>
+
+    <aside class="panel">
+      <nav class="pestanas" aria-label="Paneles del editor">
+        <button type="button" [class.activa]="pestana() === 'nodos'" (click)="irA('nodos')">Elementos</button>
+        <button type="button" [class.activa]="pestana() === 'conexiones'" (click)="irA('conexiones')">Conexiones</button>
+        <button type="button" [class.activa]="pestana() === 'estructura'" (click)="irA('estructura')">Estructura</button>
+        <button type="button" [class.activa]="pestana() === 'validacion'" (click)="irA('validacion')">
+          Validación
+          @if (advertencias().length) {
+            <span class="contador" [class.rojo]="errores() > 0">{{ advertencias().length }}</span>
+          }
+        </button>
+      </nav>
+
+      <div class="contenido">
+        @if (diagrama(); as d) {
+          @switch (pestana()) {
+            @case ('nodos') {
+              <app-panel-nodos
+                [diagrama]="d"
+                [seleccion]="seleccion()"
+                [puedeEditar]="puedeEditar()"
+                [puedeEliminar]="puedeEliminar()"
+                (cambio)="recargar()"
+                (aviso)="mostrarAviso($event)"
+              />
+            }
+            @case ('conexiones') {
+              <app-panel-conexiones
+                [diagrama]="d"
+                [seleccion]="seleccion()"
+                [puedeEditar]="puedeEditar()"
+                [puedeEliminar]="puedeEliminar()"
+                (cambio)="recargar()"
+                (aviso)="mostrarAviso($event)"
+              />
+            }
+            @case ('estructura') {
+              <app-panel-estructura
+                [diagrama]="d"
+                [seleccion]="seleccion()"
+                [puedeEditar]="puedeEstructura()"
+                (cambio)="recargar()"
+                (aviso)="mostrarAviso($event)"
+              />
+            }
+            @case ('validacion') {
+              <div class="seccion-titulo">
+                <h3>Validación del diagrama</h3>
+                <button type="button" class="btn chico" (click)="recargar()">Actualizar</button>
+              </div>
+              <p class="nota">Los errores impiden publicar el proceso; las advertencias no lo bloquean.</p>
+              <ul class="items">
+                @for (a of advertencias(); track $index) {
+                  <li>
+                    <div>
+                      <span class="badge" [class.bad]="a.nivel === 'ERROR'" [class.warn]="a.nivel !== 'ERROR'">
+                        {{ a.nivel === 'ERROR' ? 'Error' : 'Advertencia' }}
+                      </span>
+                      <span class="sub">{{ a.mensaje }}</span>
+                    </div>
+                  </li>
+                } @empty {
+                  <li class="vacio-item">El diagrama no tiene observaciones.</li>
+                }
+              </ul>
+            }
+          }
+        } @else {
+          <p class="vacio">{{ cargando() ? 'Cargando diagrama…' : 'Sin diagrama.' }}</p>
+        }
+      </div>
+    </aside>
+  </div>
+</div>

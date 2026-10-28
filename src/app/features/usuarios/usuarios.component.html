@@ -1,0 +1,111 @@
+<div class="page">
+  <app-header />
+
+  <main class="container">
+    <div class="toolbar">
+      <h1>Usuarios</h1>
+      @if (!formAbierto()) {
+        <button type="button" class="btn primary" (click)="nuevo()">Invitar usuario</button>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (okMessage()) {
+      <p class="form-ok" role="status">{{ okMessage() }}</p>
+    }
+
+    @if (formAbierto()) {
+      <form class="card stack" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <h2>{{ editando() ? 'Editar usuario' : 'Invitar usuario' }}</h2>
+
+        <div class="grid-2">
+          <div class="stack">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" type="text" formControlName="nombre" />
+            @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+              <span class="field-error">El nombre es obligatorio.</span>
+            }
+          </div>
+          <div class="stack">
+            <label for="email">Correo electrónico</label>
+            <input id="email" type="email" formControlName="email" placeholder="persona@empresa.com" />
+            @if (form.controls.email.invalid && form.controls.email.touched) {
+              <span class="field-error">Ingresa un correo válido.</span>
+            }
+          </div>
+          <div class="stack">
+            <label for="rolAcceso">Rol de acceso</label>
+            <select id="rolAcceso" formControlName="rolAcceso">
+              @for (r of roles; track r.valor) {
+                <option [value]="r.valor">{{ r.etiqueta }}</option>
+              }
+            </select>
+          </div>
+          <div class="stack">
+            <label for="password">{{ editando() ? 'Nueva contraseña (opcional)' : 'Contraseña temporal' }}</label>
+            <input id="password" type="password" formControlName="password" autocomplete="new-password" />
+            @if (form.controls.password.invalid && form.controls.password.touched) {
+              <span class="field-error">La contraseña debe tener al menos 8 caracteres.</span>
+            }
+          </div>
+        </div>
+
+        @if (!editando()) {
+          <p class="nota">
+            La cuenta queda activa al guardar. Entrega el correo y la contraseña temporal a la persona invitada.
+          </p>
+        }
+
+        <div class="actions-row">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear cuenta' }}
+          </button>
+        </div>
+      </form>
+    }
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol de acceso</th>
+            <th>Estado</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of usuarios(); track u.id) {
+            <tr [class.inactivo]="!u.activo">
+              <td>
+                <strong>{{ u.nombre }}</strong>
+                <span class="sub">{{ u.email }}</span>
+              </td>
+              <td>{{ etiquetaRol(u.rolAcceso) }}</td>
+              <td>
+                <span class="badge" [class.ok]="u.activo" [class.bad]="!u.activo">
+                  {{ u.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="acciones">
+                <button type="button" class="link" (click)="editar(u)">Editar</button>
+                @if (u.id !== yo()?.usuarioId) {
+                  <button type="button" class="link" [class.danger]="u.activo" (click)="alternarActivo(u)">
+                    {{ u.activo ? 'Desactivar' : 'Activar' }}
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="vacio">{{ loading() ? 'Cargando…' : 'No hay usuarios.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>

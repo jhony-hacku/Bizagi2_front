@@ -1,0 +1,74 @@
+.page {
+  min-height: 100vh;
+  background: #f4f5f7;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.volver {
+  font-size: 0.85rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+h1 {
+  margin: 0.75rem 0 1rem;
+  font-size: 1.4rem;
+  color: #1f2933;
+}
+
+.form-error {
+  background: #fdecec;
+  color: #b42318;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+article {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  padding: 0.9rem 1.1rem;
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.accion {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #2563eb;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: #616e7c;
+}
+
+article p {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.vacio {
+  text-align: center;
+  color: #616e7c;
+  padding: 2rem;
+}

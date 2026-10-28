@@ -1,0 +1,98 @@
+<div class="page">
+  <app-header />
+
+  <main>
+    <div class="toolbar">
+      <h1>Procesos</h1>
+      @if (puedeEscribir()) {
+        <a class="btn primary" routerLink="/procesos/nuevo">Nuevo proceso</a>
+      }
+    </div>
+
+    <form class="filtros" [formGroup]="filtros">
+      <input type="search" formControlName="nombre" placeholder="Buscar por nombre" aria-label="Buscar por nombre" />
+      <select formControlName="estado" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="BORRADOR">Borrador</option>
+        <option value="PUBLICADO">Publicado</option>
+      </select>
+      <input type="text" formControlName="categoria" placeholder="Categoría" aria-label="Filtrar por categoría" />
+      <label class="check">
+        <input type="checkbox" formControlName="verEliminados" />
+        Ver eliminados
+      </label>
+    </form>
+
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of procesos(); track p.id) {
+            <tr [class.inactivo]="!p.activo">
+              <td>
+                <strong>{{ p.nombre }}</strong>
+                @if (p.descripcion) {
+                  <span class="desc">{{ p.descripcion }}</span>
+                }
+              </td>
+              <td>{{ p.categoria || '—' }}</td>
+              <td>
+                @if (!p.activo) {
+                  <span class="badge eliminado">Eliminado</span>
+                } @else {
+                  <span class="badge" [class.publicado]="p.estado === 'PUBLICADO'">
+                    {{ p.estado === 'PUBLICADO' ? 'Publicado' : 'Borrador' }}
+                  </span>
+                }
+              </td>
+              <td class="acciones">
+                <a [routerLink]="['/procesos', p.id, 'editor']">Diagrama</a>
+                <a [routerLink]="['/procesos', p.id, 'historial']">Historial</a>
+                @if (esAdministrador() && p.activo) {
+                  <a [routerLink]="['/procesos', p.id, 'compartir']">Compartir</a>
+                }
+                @if (puedeEscribir() && p.activo) {
+                  <a [routerLink]="['/procesos', p.id, 'editar']">Editar</a>
+                }
+                @if (esAdministrador() && p.activo) {
+                  <button type="button" class="link danger" (click)="eliminar(p)">Eliminar</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="vacio">
+                {{ loading() ? 'Cargando…' : 'No hay procesos que coincidan.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pageInfo().totalPages > 1) {
+      <nav class="paginacion" aria-label="Paginación">
+        <button type="button" (click)="cargar(pageInfo().number - 1)" [disabled]="pageInfo().number === 0">Anterior</button>
+        <span>Página {{ pageInfo().number + 1 }} de {{ pageInfo().totalPages }} · {{ pageInfo().totalElements }} procesos</span>
+        <button
+          type="button"
+          (click)="cargar(pageInfo().number + 1)"
+          [disabled]="pageInfo().number + 1 >= pageInfo().totalPages"
+        >
+          Siguiente
+        </button>
+      </nav>
+    }
+  </main>
+</div>
