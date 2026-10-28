@@ -1,0 +1,176 @@
+:host {
+  position: relative;
+  display: inline-block;
+}
+
+.boton-perfil {
+  display: block;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.boton-perfil:hover,
+.boton-perfil[aria-expanded='true'] {
+  border-color: #cbd2d9;
+}
+
+.boton-perfil:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.4);
+  outline-offset: 1px;
+}
+
+.avatar {
+  display: block;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.avatar.grande {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 0.7rem;
+}
+
+.avatar svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 1500;
+  width: 320px;
+  padding: 0.6rem;
+  background: #fafbfd;
+  border: 1px solid #e4e7eb;
+  border-radius: 18px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.2);
+  animation: abrir 0.14s ease-out;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.3rem 1rem 1.1rem;
+  margin-bottom: 0.4rem;
+  background: #e8f0fe;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.nombre {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.correo {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: #616e7c;
+  word-break: break-all;
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.rol,
+.empresa {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rol {
+  background: #2563eb;
+  color: #fff;
+}
+
+.empresa {
+  background: #fff;
+  color: #334155;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #1f2933;
+  font-family: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.opcion:hover:not(:disabled) {
+  background: #eef1f6;
+}
+
+.opcion:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.5);
+  outline-offset: -2px;
+}
+
+.opcion svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.opcion.salir {
+  color: #b42318;
+}
+
+.opcion.salir:hover:not(:disabled) {
+  background: #fdecec;
+}
+
+.opcion:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+hr {
+  margin: 0.4rem 0.3rem;
+  border: none;
+  border-top: 1px solid #e4e7eb;
+}
+
+@keyframes abrir {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 400px) {
+  .panel {
+    width: calc(100vw - 1.5rem);
+  }
+}

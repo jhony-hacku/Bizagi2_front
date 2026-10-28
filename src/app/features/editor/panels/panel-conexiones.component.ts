@@ -13,6 +13,7 @@ import { DiagramaService } from '../../../core/services/diagrama.service';
 import { errorMessage } from '../../../core/utils/http-error';
 import { resumenEliminacion } from './panel-nodos.component';
 import { Aviso, ETIQUETA_DESTINO, ETIQUETA_PARTICIPANTE, Seleccion, entradas } from './panel.types';
+import { ConfirmacionService } from '../../../core/services/confirmacion.service';
 
 interface OpcionNodo {
   id: number;
@@ -44,6 +45,7 @@ const ETIQUETA_SIN_CASO: Record<AccionSinCaso, string> = {
 export class PanelConexionesComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(DiagramaService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   readonly diagrama = input.required<Diagrama>();
   readonly seleccion = input<Seleccion | null>(null);
@@ -235,8 +237,12 @@ export class PanelConexionesComponent {
     this.formulario.set('arco');
   }
 
-  protected eliminarArco(id: number, descripcion: string): void {
-    if (!confirm(`¿Eliminar el arco ${descripcion}?`)) return;
+  protected async eliminarArco(id: number, descripcion: string): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar arco',
+      mensaje: `¿Eliminar el arco ${descripcion}?`,
+    });
+    if (!aceptado) return;
     this.api.eliminarArco(id).subscribe({
       next: (r) => {
         this.cancelar();
@@ -286,8 +292,12 @@ export class PanelConexionesComponent {
     this.formulario.set('mensaje');
   }
 
-  protected eliminarMensaje(m: DiagramaMensaje): void {
-    if (!confirm(`¿Eliminar el mensaje "${m.nombre}"?`)) return;
+  protected async eliminarMensaje(m: DiagramaMensaje): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar mensaje',
+      mensaje: `¿Eliminar el mensaje "${m.nombre}"?`,
+    });
+    if (!aceptado) return;
     this.api.eliminarMensaje(m.id).subscribe({
       next: () => {
         this.cancelar();
@@ -311,8 +321,13 @@ export class PanelConexionesComponent {
     this.formulario.set('correlacion');
   }
 
-  protected quitarCorrelacion(m: DiagramaMensaje): void {
-    if (!confirm(`¿Quitar la correlación del mensaje "${m.nombre}"?`)) return;
+  protected async quitarCorrelacion(m: DiagramaMensaje): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Quitar correlación',
+      mensaje: `¿Quitar la correlación del mensaje "${m.nombre}"?`,
+      etiqueta: 'Quitar',
+    });
+    if (!aceptado) return;
     this.api.eliminarCorrelacion(m.id).subscribe({
       next: () => {
         this.cancelar();

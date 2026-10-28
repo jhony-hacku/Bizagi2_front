@@ -8,6 +8,8 @@ import { ProcesoService } from '../../core/services/proceso.service';
 import { EmpresaInvitada } from '../../core/models/diagrama.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
+import { ConfirmacionService } from '../../core/services/confirmacion.service';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 // HU-23: empresas con las que se comparte un proceso (solo lectura para ellas)
 @Component({
@@ -18,16 +20,16 @@ import { AppHeaderComponent } from '../../shared/app-header/app-header.component
 })
 export class ProcesoCompartirComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly notificaciones = inject(NotificacionService);
   private readonly diagramaService = inject(DiagramaService);
   private readonly procesoService = inject(ProcesoService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   readonly id = input.required<string>();
 
   protected readonly nombreProceso = signal('');
   protected readonly invitadas = signal<EmpresaInvitada[]>([]);
   protected readonly guardando = signal(false);
-  protected readonly errorMessage = signal<string | null>(null);
-  protected readonly okMessage = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     nit: ['', Validators.required],
@@ -37,7 +39,7 @@ export class ProcesoCompartirComponent implements OnInit {
     this.procesoService.buscar(Number(this.id())).subscribe({
       next: (proceso) => this.nombreProceso.set(proceso.nombre),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo cargar el proceso.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo cargar el proceso.')),
     });
     this.cargar();
   }
@@ -48,36 +50,37 @@ export class ProcesoCompartirComponent implements OnInit {
       return;
     }
     this.guardando.set(true);
-    this.errorMessage.set(null);
-    this.okMessage.set(null);
 
     this.diagramaService.compartir(Number(this.id()), this.form.getRawValue().nit.trim()).subscribe({
       next: (invitada) => {
         this.guardando.set(false);
         this.form.reset({ nit: '' });
-        this.okMessage.set(`Proceso compartido con ${invitada.empresa}.`);
+        this.notificaciones.ok(`Proceso compartido con ${invitada.empresa}.`);
         this.cargar();
       },
       error: (err: HttpErrorResponse) => {
         this.guardando.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudo compartir el proceso.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudo compartir el proceso.'));
       },
     });
   }
 
-  protected dejarDeCompartir(invitada: EmpresaInvitada): void {
-    if (!confirm(`¿Dejar de compartir el proceso con ${invitada.empresa}?`)) {
+  protected async dejarDeCompartir(invitada: EmpresaInvitada): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Dejar de compartir',
+      mensaje: `¿Dejar de compartir el proceso con ${invitada.empresa}?`,
+      etiqueta: 'Dejar de compartir',
+    });
+    if (!aceptado) {
       return;
     }
-    this.errorMessage.set(null);
-    this.okMessage.set(null);
     this.diagramaService.dejarDeCompartir(Number(this.id()), invitada.empresaId).subscribe({
       next: () => {
-        this.okMessage.set(`Ya no se comparte con ${invitada.empresa}.`);
+        this.notificaciones.ok(`Ya no se comparte con ${invitada.empresa}.`);
         this.cargar();
       },
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo dejar de compartir el proceso.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo dejar de compartir el proceso.')),
     });
   }
 
@@ -85,7 +88,7 @@ export class ProcesoCompartirComponent implements OnInit {
     this.diagramaService.invitadas(Number(this.id())).subscribe({
       next: (lista) => this.invitadas.set(lista),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo cargar la lista de empresas.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo cargar la lista de empresas.')),
     });
   }
 }

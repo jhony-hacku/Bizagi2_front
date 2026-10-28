@@ -1,7 +1,7 @@
 <header class="app-header">
   <div class="izquierda">
     <a class="brand" routerLink="/procesos">Bizagi2</a>
-    @if (user()) {
+    @if (usuario()) {
       <nav aria-label="Principal">
         <a routerLink="/procesos" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Procesos</a>
         <a routerLink="/procesos/compartidos" routerLinkActive="activo">Compartidos</a>
@@ -13,10 +13,5 @@
       </nav>
     }
   </div>
-  @if (user(); as u) {
-    <div class="user-box">
-      <span>{{ u.nombre }} · {{ u.rolAcceso }} · {{ u.empresa }}</span>
-      <button type="button" (click)="logout()">Cerrar sesión</button>
-    </div>
-  }
+  <app-perfil-menu />
 </header>

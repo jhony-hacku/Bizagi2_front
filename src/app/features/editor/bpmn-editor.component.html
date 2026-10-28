@@ -22,14 +22,8 @@
       <button type="button" (click)="exportarSvg()">Exportar SVG</button>
       <button type="button" class="primary" (click)="exportarBpmn()">Exportar .bpmn</button>
     </div>
+    <app-perfil-menu />
   </header>
-
-  @if (aviso(); as a) {
-    <p class="aviso" [class.ok]="a.tipo === 'ok'" [class.error]="a.tipo === 'error'" [class.warn]="a.tipo === 'warn'" role="status">
-      {{ a.texto }}
-      <button type="button" class="cerrar" (click)="aviso.set(null)" aria-label="Cerrar aviso">×</button>
-    </p>
-  }
 
   @if (puedeEditar()) {
     <div class="paleta" role="toolbar" aria-label="Paleta de elementos">
@@ -57,6 +51,23 @@
     </div>
   }
 
+  @if (menu(); as m) {
+    <div class="menu-contextual" role="menu" [style.left.px]="m.x" [style.top.px]="m.y">
+      <span class="menu-titulo">{{ m.descripcion }}</span>
+      <button type="button" role="menuitem" (click)="editarDesdeMenu()">Editar</button>
+      <button
+        type="button"
+        role="menuitem"
+        class="peligro"
+        [disabled]="!puedeEliminar()"
+        [title]="puedeEliminar() ? '' : 'Solo el administrador puede eliminar'"
+        (click)="eliminarDesdeMenu()"
+      >
+        Eliminar
+      </button>
+    </div>
+  }
+
   <div class="cuerpo">
     <div
       #canvas
@@ -64,6 +75,7 @@
       [class.conectando]="modoConectar()"
       (dragover)="permitirSoltar($event)"
       (drop)="soltarElemento($event)"
+      (contextmenu)="$event.preventDefault()"
     ></div>
 
     <aside class="panel">

@@ -10,6 +10,8 @@ import { RolProcesoDetalle } from '../../core/models/organizacion.model';
 import { HistorialEntry, PageInfo } from '../../core/models/proceso.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
+import { ConfirmacionService } from '../../core/services/confirmacion.service';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 const PAGE_SIZE = 10;
 
@@ -23,9 +25,11 @@ const PAGE_SIZE = 10;
 })
 export class RolesComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly notificaciones = inject(NotificacionService);
   private readonly rolService = inject(RolProcesoService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   protected readonly puedeEscribir = this.authService.puedeEscribir;
   protected readonly esAdministrador = this.authService.esAdministrador;
@@ -34,8 +38,6 @@ export class RolesComponent {
   protected readonly pageInfo = signal<PageInfo>({ size: PAGE_SIZE, number: 0, totalElements: 0, totalPages: 0 });
   protected readonly loading = signal(false);
   protected readonly guardando = signal(false);
-  protected readonly errorMessage = signal<string | null>(null);
-  protected readonly okMessage = signal<string | null>(null);
   protected readonly formAbierto = signal(false);
   protected readonly editando = signal<RolProcesoDetalle | null>(null);
   protected readonly expandido = signal<number | null>(null);
@@ -65,7 +67,7 @@ export class RolesComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudieron cargar los roles.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudieron cargar los roles.'));
       },
     });
   }
@@ -74,14 +76,12 @@ export class RolesComponent {
     this.editando.set(null);
     this.form.reset({ nombre: '', descripcion: '' });
     this.formAbierto.set(true);
-    this.limpiarMensajes();
   }
 
   protected editar(rol: RolProcesoDetalle): void {
     this.editando.set(rol);
     this.form.reset({ nombre: rol.nombre, descripcion: rol.descripcion ?? '' });
     this.formAbierto.set(true);
-    this.limpiarMensajes();
   }
 
   protected cancelar(): void {
@@ -97,7 +97,6 @@ export class RolesComponent {
     const datos = this.form.getRawValue();
     const actual = this.editando();
     this.guardando.set(true);
-    this.limpiarMensajes();
 
     const peticion = actual ? this.rolService.actualizar(actual.id, datos) : this.rolService.crear(datos);
     peticion.subscribe({
@@ -105,32 +104,35 @@ export class RolesComponent {
         this.guardando.set(false);
         this.formAbierto.set(false);
         this.editando.set(null);
-        this.okMessage.set(actual ? 'Rol actualizado.' : 'Rol creado.');
+        this.notificaciones.ok(actual ? 'Rol actualizado.' : 'Rol creado.');
         this.cargar(this.pageInfo().number);
       },
       error: (err: HttpErrorResponse) => {
         this.guardando.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudo guardar el rol.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudo guardar el rol.'));
       },
     });
   }
 
-  protected eliminar(rol: RolProcesoDetalle): void {
+  protected async eliminar(rol: RolProcesoDetalle): Promise<void> {
     if (!rol.eliminable) {
       const procesos = rol.procesos.map((p) => p.nombre).join(', ');
-      this.errorMessage.set(`El rol "${rol.nombre}" está en uso en: ${procesos}. Reasigna sus lanes antes de eliminarlo.`);
+      this.notificaciones.error(`El rol "${rol.nombre}" está en uso en: ${procesos}. Reasigna sus lanes antes de eliminarlo.`);
       return;
     }
-    if (!confirm(`¿Eliminar el rol "${rol.nombre}"? Quedará inactivo y se conserva su historial.`)) {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar rol',
+      mensaje: `¿Eliminar el rol "${rol.nombre}"? Quedará inactivo y se conserva su historial.`,
+    });
+    if (!aceptado) {
       return;
     }
-    this.limpiarMensajes();
     this.rolService.eliminar(rol.id).subscribe({
       next: () => {
-        this.okMessage.set('Rol eliminado.');
+        this.notificaciones.ok('Rol eliminado.');
         this.cargar(this.pageInfo().number);
       },
-      error: (err: HttpErrorResponse) => this.errorMessage.set(errorMessage(err, 'No se pudo eliminar el rol.')),
+      error: (err: HttpErrorResponse) => this.notificaciones.error(errorMessage(err, 'No se pudo eliminar el rol.')),
     });
   }
 
@@ -148,12 +150,8 @@ export class RolesComponent {
     this.rolService.historial(rol.id).subscribe({
       next: (lista) => this.historial.set(lista),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo cargar el historial del rol.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo cargar el historial del rol.')),
     });
   }
 
-  private limpiarMensajes(): void {
-    this.errorMessage.set(null);
-    this.okMessage.set(null);
-  }
 }

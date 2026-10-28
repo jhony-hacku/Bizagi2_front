@@ -1,0 +1,23 @@
+<section class="contenedor" aria-live="polite" aria-label="Notificaciones">
+  @for (n of servicio.lista(); track n.id) {
+    <div
+      class="toast"
+      [class.ok]="n.tipo === 'ok'"
+      [class.error]="n.tipo === 'error'"
+      [class.warn]="n.tipo === 'warn'"
+      [class.saliendo]="saliendo().has(n.id)"
+      [class.arrastrando]="arrastrando() === n.id"
+      [style.transform]="'translateX(' + (desplazamientos()[n.id] ?? 0) + 'px)'"
+      [style.opacity]="1 - (desplazamientos()[n.id] ?? 0) / 260"
+      [attr.role]="n.tipo === 'error' ? 'alert' : 'status'"
+      (pointerdown)="iniciar($event, n.id)"
+      (pointermove)="mover($event, n.id)"
+      (pointerup)="soltar($event, n.id)"
+      (pointercancel)="soltar($event, n.id)"
+    >
+      <span class="barra" aria-hidden="true"></span>
+      <p>{{ n.texto }}</p>
+      <button type="button" class="cerrar" aria-label="Cerrar notificación" (click)="descartar(n.id)">×</button>
+    </div>
+  }
+</section>

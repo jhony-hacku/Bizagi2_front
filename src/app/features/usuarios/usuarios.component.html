@@ -9,13 +9,6 @@
       }
     </div>
 
-    @if (errorMessage()) {
-      <p class="form-error" role="alert">{{ errorMessage() }}</p>
-    }
-    @if (okMessage()) {
-      <p class="form-ok" role="status">{{ okMessage() }}</p>
-    }
-
     @if (formAbierto()) {
       <form class="card stack" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
         <h2>{{ editando() ? 'Editar usuario' : 'Invitar usuario' }}</h2>

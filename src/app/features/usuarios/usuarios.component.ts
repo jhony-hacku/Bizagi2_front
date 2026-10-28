@@ -8,6 +8,8 @@ import { RolAcceso } from '../../core/models/auth.model';
 import { Usuario } from '../../core/models/organizacion.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
+import { ConfirmacionService } from '../../core/services/confirmacion.service';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 // HU-02: gestión de usuarios de la empresa
 @Component({
@@ -18,15 +20,15 @@ import { AppHeaderComponent } from '../../shared/app-header/app-header.component
 })
 export class UsuariosComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly notificaciones = inject(NotificacionService);
   private readonly usuarioService = inject(UsuarioService);
   private readonly authService = inject(AuthService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   protected readonly yo = this.authService.currentUser;
   protected readonly usuarios = signal<Usuario[]>([]);
   protected readonly loading = signal(false);
   protected readonly guardando = signal(false);
-  protected readonly errorMessage = signal<string | null>(null);
-  protected readonly okMessage = signal<string | null>(null);
   protected readonly formAbierto = signal(false);
   protected readonly editando = signal<Usuario | null>(null);
 
@@ -60,7 +62,7 @@ export class UsuariosComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudieron cargar los usuarios.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudieron cargar los usuarios.'));
       },
     });
   }
@@ -71,7 +73,6 @@ export class UsuariosComponent {
     this.form.controls.password.setValidators([Validators.required, Validators.minLength(8)]);
     this.form.controls.password.updateValueAndValidity();
     this.formAbierto.set(true);
-    this.limpiarMensajes();
   }
 
   protected editar(usuario: Usuario): void {
@@ -85,7 +86,6 @@ export class UsuariosComponent {
     this.form.controls.password.setValidators([Validators.minLength(8)]);
     this.form.controls.password.updateValueAndValidity();
     this.formAbierto.set(true);
-    this.limpiarMensajes();
   }
 
   protected cancelar(): void {
@@ -101,7 +101,6 @@ export class UsuariosComponent {
     const { nombre, email, password, rolAcceso } = this.form.getRawValue();
     const actual = this.editando();
     this.guardando.set(true);
-    this.limpiarMensajes();
 
     const peticion: Observable<unknown> = actual
       ? this.usuarioService.actualizar(actual.id, {
@@ -117,33 +116,35 @@ export class UsuariosComponent {
         this.guardando.set(false);
         this.formAbierto.set(false);
         this.editando.set(null);
-        this.okMessage.set(actual ? 'Usuario actualizado.' : `Cuenta creada para ${email}.`);
+        this.notificaciones.ok(actual ? 'Usuario actualizado.' : `Cuenta creada para ${email}.`);
         this.cargar();
       },
       error: (err: HttpErrorResponse) => {
         this.guardando.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudo guardar el usuario.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudo guardar el usuario.'));
       },
     });
   }
 
-  protected alternarActivo(usuario: Usuario): void {
-    if (usuario.activo && !confirm(`¿Desactivar a ${usuario.nombre}? Su historial de cambios se conserva.`)) {
-      return;
+  protected async alternarActivo(usuario: Usuario): Promise<void> {
+    if (usuario.activo) {
+      const aceptado = await this.confirmacion.pedir({
+        titulo: 'Desactivar usuario',
+        mensaje: `¿Desactivar a ${usuario.nombre}? Su historial de cambios se conserva.`,
+        etiqueta: 'Desactivar',
+      });
+      if (!aceptado) {
+        return;
+      }
     }
-    this.limpiarMensajes();
     const peticion: Observable<unknown> = usuario.activo
       ? this.usuarioService.desactivar(usuario.id)
       : this.usuarioService.activar(usuario.id);
     peticion.subscribe({
       next: () => this.cargar(),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo cambiar el estado del usuario.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo cambiar el estado del usuario.')),
     });
   }
 
-  private limpiarMensajes(): void {
-    this.errorMessage.set(null);
-    this.okMessage.set(null);
-  }
 }

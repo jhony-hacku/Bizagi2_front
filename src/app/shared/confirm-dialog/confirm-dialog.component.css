@@ -1,0 +1,71 @@
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(31, 41, 51, 0.45);
+}
+
+.dialogo {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  color: #1f2933;
+}
+
+p {
+  margin: 0 0 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelar {
+  background: #fff;
+  border: 1px solid #cbd2d9;
+  color: #334155;
+}
+
+.cancelar:hover {
+  background: #f4f5f7;
+}
+
+.confirmar {
+  background: #d92d20;
+  border: 1px solid #d92d20;
+  color: #fff;
+}
+
+.confirmar:hover {
+  background: #b42318;
+}
+
+button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.4);
+  outline-offset: 2px;
+}

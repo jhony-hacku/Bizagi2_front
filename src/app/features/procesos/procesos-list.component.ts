@@ -9,6 +9,8 @@ import { ProcesoService } from '../../core/services/proceso.service';
 import { PageInfo, Proceso } from '../../core/models/proceso.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
+import { ConfirmacionService } from '../../core/services/confirmacion.service';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 const PAGE_SIZE = 10;
 
@@ -21,9 +23,11 @@ const PAGE_SIZE = 10;
 })
 export class ProcesosListComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly notificaciones = inject(NotificacionService);
   private readonly procesoService = inject(ProcesoService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   protected readonly puedeEscribir = this.authService.puedeEscribir;
   protected readonly esAdministrador = this.authService.esAdministrador;
@@ -31,7 +35,6 @@ export class ProcesosListComponent {
   protected readonly procesos = signal<Proceso[]>([]);
   protected readonly pageInfo = signal<PageInfo>({ size: PAGE_SIZE, number: 0, totalElements: 0, totalPages: 0 });
   protected readonly loading = signal(false);
-  protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly filtros = this.fb.nonNullable.group({
     nombre: [''],
@@ -50,7 +53,6 @@ export class ProcesosListComponent {
   protected cargar(page: number): void {
     const { nombre, estado, categoria, verEliminados } = this.filtros.getRawValue();
     this.loading.set(true);
-    this.errorMessage.set(null);
 
     this.procesoService
       .listar({ nombre, estado, categoria, activo: !verEliminados, page, size: PAGE_SIZE })
@@ -62,19 +64,23 @@ export class ProcesosListComponent {
         },
         error: (err: HttpErrorResponse) => {
           this.loading.set(false);
-          this.errorMessage.set(errorMessage(err, 'No se pudieron cargar los procesos.'));
+          this.notificaciones.error(errorMessage(err, 'No se pudieron cargar los procesos.'));
         },
       });
   }
 
-  protected eliminar(proceso: Proceso): void {
-    if (!confirm(`¿Eliminar el proceso "${proceso.nombre}"? Quedará inactivo y podrás consultarlo con el filtro "Ver eliminados".`)) {
+  protected async eliminar(proceso: Proceso): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar proceso',
+      mensaje: `¿Eliminar el proceso "${proceso.nombre}"? Quedará inactivo y podrás consultarlo con el filtro "Ver eliminados".`,
+    });
+    if (!aceptado) {
       return;
     }
     this.procesoService.eliminar(proceso.id).subscribe({
       next: () => this.cargar(this.pageInfo().number),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(errorMessage(err, 'No se pudo eliminar el proceso.')),
+        this.notificaciones.error(errorMessage(err, 'No se pudo eliminar el proceso.')),
     });
   }
 }

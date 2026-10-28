@@ -7,6 +7,7 @@ import { RolProceso } from '../../../core/models/organizacion.model';
 import { DiagramaService } from '../../../core/services/diagrama.service';
 import { errorMessage } from '../../../core/utils/http-error';
 import { Aviso, ETIQUETA_PARTICIPANTE, Seleccion, entradas } from './panel.types';
+import { ConfirmacionService } from '../../../core/services/confirmacion.service';
 
 type Formulario = 'pool' | 'lane';
 
@@ -20,6 +21,7 @@ type Formulario = 'pool' | 'lane';
 export class PanelEstructuraComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(DiagramaService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   readonly diagrama = input.required<Diagrama>();
   readonly seleccion = input<Seleccion | null>(null);
@@ -83,8 +85,12 @@ export class PanelEstructuraComponent {
     this.formulario.set('pool');
   }
 
-  protected eliminarPool(pool: DiagramaPool): void {
-    if (!confirm(`¿Eliminar el pool "${pool.nombre}" con todo lo que contiene?`)) return;
+  protected async eliminarPool(pool: DiagramaPool): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar pool',
+      mensaje: `¿Eliminar el pool "${pool.nombre}" con todo lo que contiene?`,
+    });
+    if (!aceptado) return;
     this.api.eliminarPool(pool.id).subscribe({
       next: () => {
         this.cancelar();
@@ -116,8 +122,12 @@ export class PanelEstructuraComponent {
     this.formulario.set('lane');
   }
 
-  protected eliminarLane(lane: DiagramaLane): void {
-    if (!confirm(`¿Eliminar la lane "${lane.nombre}"? Debe estar sin actividades.`)) return;
+  protected async eliminarLane(lane: DiagramaLane): Promise<void> {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar lane',
+      mensaje: `¿Eliminar la lane "${lane.nombre}"? Debe estar sin actividades.`,
+    });
+    if (!aceptado) return;
     this.api.eliminarLane(lane.id).subscribe({
       next: () => {
         this.cancelar();

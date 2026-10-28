@@ -1,0 +1,19 @@
+@if (confirmacion.solicitud(); as s) {
+  <div class="fondo" (click)="confirmacion.responder(false)">
+    <div
+      class="dialogo"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirmacion-titulo"
+      aria-describedby="confirmacion-mensaje"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="confirmacion-titulo">{{ s.titulo }}</h2>
+      <p id="confirmacion-mensaje">{{ s.mensaje }}</p>
+      <div class="acciones">
+        <button type="button" class="cancelar" data-foco (click)="confirmacion.responder(false)">Cancelar</button>
+        <button type="button" class="confirmar" (click)="confirmacion.responder(true)">{{ s.etiqueta }}</button>
+      </div>
+    </div>
+  </div>
+}

@@ -63,39 +63,6 @@ button.primary:hover {
   background: #1d4ed8;
 }
 
-.aviso {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.85rem;
-}
-
-.aviso.ok {
-  background: #d1fadf;
-  color: #027a48;
-}
-
-.aviso.error {
-  background: #fdecec;
-  color: #b42318;
-}
-
-.aviso.warn {
-  background: #fff4e0;
-  color: #93500a;
-}
-
-.aviso .cerrar {
-  border: none;
-  background: none;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 0 0.25rem;
-  color: inherit;
-}
-
 .cuerpo {
   flex: 1;
   display: flex;
@@ -260,4 +227,54 @@ button.primary:hover {
 
 .canvas.conectando {
   cursor: crosshair;
+}
+
+.menu-contextual {
+  position: fixed;
+  z-index: 1000;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem;
+  background: #fff;
+  border: 1px solid #cbd2d9;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.menu-titulo {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  color: #616e7c;
+  border-bottom: 1px solid #e4e7eb;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-contextual button {
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+.menu-contextual button:hover:not(:disabled) {
+  background: #f4f5f7;
+}
+
+.menu-contextual button.peligro {
+  color: #b42318;
+}
+
+.menu-contextual button.peligro:hover:not(:disabled) {
+  background: #fdecec;
+}
+
+.menu-contextual button:disabled {
+  color: #9aa5b1;
+  cursor: not-allowed;
 }

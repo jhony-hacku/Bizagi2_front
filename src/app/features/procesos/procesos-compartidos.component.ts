@@ -6,6 +6,7 @@ import { DiagramaService } from '../../core/services/diagrama.service';
 import { ProcesoCompartido } from '../../core/models/diagrama.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 // HU-23: procesos que otras empresas compartieron, en solo lectura
 @Component({
@@ -16,10 +17,10 @@ import { AppHeaderComponent } from '../../shared/app-header/app-header.component
 })
 export class ProcesosCompartidosComponent {
   private readonly diagramaService = inject(DiagramaService);
+  private readonly notificaciones = inject(NotificacionService);
 
   protected readonly procesos = signal<ProcesoCompartido[]>([]);
   protected readonly loading = signal(true);
-  protected readonly errorMessage = signal<string | null>(null);
 
   constructor() {
     this.diagramaService.compartidosConmigo().subscribe({
@@ -29,7 +30,7 @@ export class ProcesosCompartidosComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
-        this.errorMessage.set(errorMessage(err, 'No se pudieron cargar los procesos compartidos.'));
+        this.notificaciones.error(errorMessage(err, 'No se pudieron cargar los procesos compartidos.'));
       },
     });
   }

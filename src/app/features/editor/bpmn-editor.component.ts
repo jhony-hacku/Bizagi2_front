@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   ViewChild,
   computed,
@@ -17,7 +18,7 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { AuthService } from '../../core/services/auth.service';
 import { DiagramaService } from '../../core/services/diagrama.service';
 import { EmpresaService } from '../../core/services/organizacion.service';
-import { Advertencia, Diagrama } from '../../core/models/diagrama.model';
+import { Advertencia, Diagrama, Eliminacion } from '../../core/models/diagrama.model';
 import { Empresa } from '../../core/models/organizacion.model';
 import { errorMessage } from '../../core/utils/http-error';
 import {
@@ -32,12 +33,20 @@ import {
 import { ItemPaleta, PALETA, TIPO_MIME_PALETA, nombreLibre } from './paleta';
 import { PanelConexionesComponent } from './panels/panel-conexiones.component';
 import { PanelEstructuraComponent } from './panels/panel-estructura.component';
-import { PanelNodosComponent } from './panels/panel-nodos.component';
+import { PanelNodosComponent, resumenEliminacion } from './panels/panel-nodos.component';
 import { Aviso, Seleccion, TipoSeleccion } from './panels/panel.types';
+import { ConfirmacionService } from '../../core/services/confirmacion.service';
+import { NotificacionService } from '../../core/services/notificacion.service';
+import { PerfilMenuComponent } from '../../shared/perfil-menu/perfil-menu.component';
 
 type Pestana = 'nodos' | 'conexiones' | 'estructura' | 'validacion';
 
 const NODO = /^(Actividad|Gateway|Evento)_\d+$/;
+
+const ELIMINABLES: TipoSeleccion[] = ['actividad', 'gateway', 'evento', 'arco', 'mensaje'];
+
+const MENU_ANCHO = 200;
+const MENU_ALTO = 110;
 
 const PATRONES: [RegExp, TipoSeleccion][] = [
   [/^Actividad_(\d+)$/, 'actividad'],
@@ -86,7 +95,7 @@ const ACCIONES_BLOQUEADAS = [
 @Component({
   selector: 'app-bpmn-editor',
   standalone: true,
-  imports: [PanelNodosComponent, PanelConexionesComponent, PanelEstructuraComponent],
+  imports: [PanelNodosComponent, PanelConexionesComponent, PanelEstructuraComponent, PerfilMenuComponent],
   templateUrl: './bpmn-editor.component.html',
   styleUrl: './bpmn-editor.component.css',
 })
@@ -97,6 +106,8 @@ export class BpmnEditorComponent implements AfterViewInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly diagramaService = inject(DiagramaService);
   private readonly empresaService = inject(EmpresaService);
+  private readonly confirmacion = inject(ConfirmacionService);
+  private readonly notificaciones = inject(NotificacionService);
 
   readonly id = input.required<string>();
 
@@ -104,9 +115,9 @@ export class BpmnEditorComponent implements AfterViewInit, OnDestroy {
   protected readonly advertencias = signal<Advertencia[]>([]);
   protected readonly seleccion = signal<Seleccion | null>(null);
   protected readonly pestana = signal<Pestana>('nodos');
-  protected readonly aviso = signal<Aviso | null>(null);
   protected readonly cargando = signal(true);
   protected readonly modoConectar = signal(false);
+  protected readonly menu = signal<{ x: number; y: number; sel: Seleccion; descripcion: string } | null>(null);
   protected readonly paleta = PALETA;
   private readonly empresa = signal<Empresa | null>(null);
 
@@ -126,7 +137,6 @@ export class BpmnEditorComponent implements AfterViewInit, OnDestroy {
 
   private modeler: any;
   private layout: Layout = { pools: [] };
-  private avisoTimer: ReturnType<typeof setTimeout> | undefined;
   private destruido = false;
 
   ngAfterViewInit(): void {
@@ -174,8 +184,10 @@ export class BpmnEditorComponent implements AfterViewInit, OnDestroy {
     this.modeler.on('commandStack.elements.move.postExecuted', (evento: any) =>
       this.alMover(evento.context.shapes ?? []),
     );
+    this.modeler.on('element.contextmenu', 1500, (evento: any) => this.abrirMenu(evento));
     // En modo conectar, arrastrar desde un nodo dibuja un arco en lugar de mover el nodo
     this.modeler.on('element.mousedown', 1500, (evento: any) => {
+      if (evento.originalEvent?.button) return;
       if (!this.modoConectar() || !this.puedeEditar() || !NODO.test(evento.element?.id ?? '')) return;
       this.modeler.get('connect').start(evento.originalEvent, evento.element, true);
       return false;
@@ -190,18 +202,127 @@ export class BpmnEditorComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destruido = true;
-    clearTimeout(this.avisoTimer);
     this.modeler?.destroy();
   }
 
   protected mostrarAviso(aviso: Aviso): void {
-    this.aviso.set(aviso);
-    clearTimeout(this.avisoTimer);
-    this.avisoTimer = setTimeout(() => this.aviso.set(null), 8000);
+    this.notificaciones.mostrar(aviso.tipo, aviso.texto);
   }
 
   protected recargar(): void {
     this.cargar(false);
+  }
+
+  // Menú de clic derecho sobre un elemento del diagrama
+  private abrirMenu(evento: any): void {
+    const original: MouseEvent | undefined = evento.originalEvent;
+    original?.preventDefault();
+
+    const diagrama = this.diagrama();
+    const sel = this.seleccionDe(evento.element?.id);
+    const descripcion = sel && diagrama ? this.describir(sel, diagrama) : null;
+    if (!original || !sel || !descripcion || !ELIMINABLES.includes(sel.tipo) || !this.puedeEditar()) {
+      this.menu.set(null);
+      return;
+    }
+    this.menu.set({
+      x: Math.max(0, Math.min(original.clientX, window.innerWidth - MENU_ANCHO)),
+      y: Math.max(0, Math.min(original.clientY, window.innerHeight - MENU_ALTO)),
+      sel,
+      descripcion,
+    });
+  }
+
+  protected editarDesdeMenu(): void {
+    const abierto = this.menu();
+    if (!abierto) return;
+    this.pestana.set(PESTANA_DE[abierto.sel.tipo]);
+    this.seleccion.set({ ...abierto.sel });
+  }
+
+  protected async eliminarDesdeMenu(): Promise<void> {
+    const abierto = this.menu();
+    if (!abierto || !this.puedeEliminar()) return;
+    const { sel, descripcion } = abierto;
+    const conexiones = sel.tipo === 'arco' || sel.tipo === 'mensaje' ? '' : ' También se eliminan los arcos conectados.';
+    const aceptado = await this.confirmacion.pedir({
+      titulo: 'Eliminar elemento',
+      mensaje: `¿Eliminar ${descripcion}?${conexiones}`,
+    });
+    if (!aceptado) return;
+
+    this.eliminarElemento(sel).subscribe({
+      next: (resultado) => {
+        this.mostrarAviso(resultado ? resumenEliminacion(resultado) : { tipo: 'ok', texto: 'Mensaje eliminado.' });
+        this.cargar(false);
+      },
+      error: (err: HttpErrorResponse) =>
+        this.mostrarAviso({ tipo: 'error', texto: errorMessage(err, 'No se pudo eliminar el elemento.') }),
+    });
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  @HostListener('window:resize')
+  @HostListener('window:blur')
+  protected cerrarMenu(): void {
+    if (this.menu()) this.menu.set(null);
+  }
+
+  // Un clic derecho fuera del lienzo también cierra el menú
+  @HostListener('document:contextmenu', ['$event'])
+  protected alClicDerechoGlobal(evento: MouseEvent): void {
+    if (!this.canvasRef.nativeElement.contains(evento.target as Node)) this.cerrarMenu();
+  }
+
+  private seleccionDe(idBpmn: string | undefined): Seleccion | null {
+    for (const [patron, tipo] of PATRONES) {
+      const coincide = patron.exec(idBpmn ?? '');
+      if (coincide) return { tipo, id: Number(coincide[1]) };
+    }
+    return null;
+  }
+
+  private describir(sel: Seleccion, d: Diagrama): string | null {
+    const nodos = new Map<number, string>();
+    for (const p of d.pools) {
+      p.actividades.forEach((a) => nodos.set(a.id, a.nombre));
+      p.gateways.forEach((g) => nodos.set(g.id, g.nombre));
+      p.eventos.forEach((e) => nodos.set(e.id, e.nombre));
+    }
+    switch (sel.tipo) {
+      case 'actividad':
+        return nodos.has(sel.id) ? `la actividad "${nodos.get(sel.id)}"` : null;
+      case 'gateway':
+        return nodos.has(sel.id) ? `el gateway "${nodos.get(sel.id)}"` : null;
+      case 'evento':
+        return nodos.has(sel.id) ? `el evento "${nodos.get(sel.id)}"` : null;
+      case 'arco': {
+        const arco = d.pools.flatMap((p) => p.arcos).find((a) => a.id === sel.id);
+        return arco ? `el arco "${nodos.get(arco.origenId)} → ${nodos.get(arco.destinoId)}"` : null;
+      }
+      case 'mensaje': {
+        const mensaje = d.mensajes.find((m) => m.id === sel.id);
+        return mensaje ? `el mensaje "${mensaje.nombre}"` : null;
+      }
+      default:
+        return null;
+    }
+  }
+
+  private eliminarElemento(sel: Seleccion): Observable<Eliminacion | void> {
+    switch (sel.tipo) {
+      case 'actividad':
+        return this.diagramaService.eliminarActividad(sel.id);
+      case 'gateway':
+        return this.diagramaService.eliminarGateway(sel.id);
+      case 'evento':
+        return this.diagramaService.eliminarEvento(sel.id);
+      case 'arco':
+        return this.diagramaService.eliminarArco(sel.id);
+      default:
+        return this.diagramaService.eliminarMensaje(sel.id);
+    }
   }
 
   protected alternarConectar(): void {

@@ -21,6 +21,7 @@ import {
   Seleccion,
   entradas,
 } from './panel.types';
+import { ConfirmacionService } from '../../../core/services/confirmacion.service';
 
 type Formulario = 'actividad' | 'gateway' | 'evento';
 
@@ -34,6 +35,7 @@ type Formulario = 'actividad' | 'gateway' | 'evento';
 export class PanelNodosComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(DiagramaService);
+  private readonly confirmacion = inject(ConfirmacionService);
 
   readonly diagrama = input.required<Diagrama>();
   readonly seleccion = input<Seleccion | null>(null);
@@ -249,9 +251,13 @@ export class PanelNodosComponent {
     });
   }
 
-  protected eliminar(tipo: Formulario, id: number, nombre: string): void {
+  protected async eliminar(tipo: Formulario, id: number, nombre: string): Promise<void> {
     const que = tipo === 'actividad' ? 'la actividad' : tipo === 'gateway' ? 'el gateway' : 'el evento';
-    if (!confirm(`¿Eliminar ${que} "${nombre}"? También se eliminan los arcos conectados.`)) {
+    const aceptado = await this.confirmacion.pedir({
+      titulo: `Eliminar ${tipo}`,
+      mensaje: `¿Eliminar ${que} "${nombre}"? También se eliminan los arcos conectados.`,
+    });
+    if (!aceptado) {
       return;
     }
     const peticion =

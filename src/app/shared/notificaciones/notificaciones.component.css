@@ -1,0 +1,101 @@
+.contenedor {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(380px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem 0.8rem 1.1rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  color: #1f2933;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  pointer-events: auto;
+  overflow: hidden;
+  animation: entrar 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.toast.arrastrando {
+  cursor: grabbing;
+  transition: none;
+  animation: none;
+}
+
+.toast.saliendo {
+  transform: translateX(120%) !important;
+  opacity: 0 !important;
+}
+
+.barra {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: #2563eb;
+}
+
+.toast.ok .barra {
+  background: #12b76a;
+}
+
+.toast.error .barra {
+  background: #d92d20;
+}
+
+.toast.warn .barra {
+  background: #f79009;
+}
+
+p {
+  flex: 1;
+  margin: 0;
+}
+
+.cerrar {
+  border: none;
+  background: transparent;
+  color: #616e7c;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  cursor: pointer;
+}
+
+.cerrar:hover {
+  color: #1f2933;
+}
+
+@keyframes entrar {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+    transition: none;
+  }
+}
