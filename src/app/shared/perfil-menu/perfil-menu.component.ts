@@ -26,6 +26,7 @@ export class PerfilMenuComponent {
   protected readonly esAdministrador = this.authService.esAdministrador;
   protected readonly abierto = signal(false);
   protected readonly cerrando = signal(false);
+  protected readonly errorCierre = signal<string | null>(null);
   protected readonly rol = computed(() => {
     const rol = this.usuario()?.rolAcceso;
     return rol ? ETIQUETA_ROL[rol] : '';
@@ -38,10 +39,17 @@ export class PerfilMenuComponent {
   protected cerrarSesion(): void {
     if (this.cerrando()) return;
     this.cerrando.set(true);
-    this.authService.logout().subscribe(() => {
-      this.abierto.set(false);
-      this.cerrando.set(false);
-      this.router.navigateByUrl('/login');
+    this.errorCierre.set(null);
+    this.authService.logout().subscribe({
+      next: () => {
+        this.abierto.set(false);
+        this.cerrando.set(false);
+        void this.router.navigateByUrl('/login');
+      },
+      error: () => {
+        this.cerrando.set(false);
+        this.errorCierre.set('No se pudo cerrar la sesión. Revisa tu conexión e intenta de nuevo.');
+      },
     });
   }
 
