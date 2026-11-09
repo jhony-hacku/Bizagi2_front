@@ -9,6 +9,8 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   token: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
   usuarioId: number;
   nombre: string;
   email: string;

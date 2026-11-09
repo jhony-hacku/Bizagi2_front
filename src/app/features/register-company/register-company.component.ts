@@ -56,9 +56,9 @@ export class RegisterCompanyComponent {
       .subscribe({
         next: () => {
           this.loading.set(false);
-          this.successMessage.set('Empresa registrada correctamente. Ya puedes iniciar sesión.');
+          this.successMessage.set('Empresa registrada correctamente.');
           this.form.reset();
-          setTimeout(() => this.router.navigateByUrl('/login'), 1500);
+          void this.router.navigateByUrl('/procesos');
         },
         error: (err: HttpErrorResponse) => {
           this.loading.set(false);
