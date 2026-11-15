@@ -1,0 +1,3 @@
+# Archivos que se copian a la imagen Linux: siempre con fin de linea LF
+Dockerfile text eol=lf
+nginx/** text eol=lf
