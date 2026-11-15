@@ -1,0 +1,58 @@
+# Plantilla de nginx. Al arrancar el contenedor, ${BACKEND_URL} se reemplaza
+# por la variable de entorno. Las variables propias de nginx ($uri, $host...)
+# no se tocan porque no existen como variables de entorno.
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # DNS interno de Docker. Junto con la variable en proxy_pass hace que nginx
+    # vuelva a resolver el backend cuando se redespliega y cambia de IP.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # API: se reenvia al backend conservando la ruta completa (/api/...)
+    location /api/ {
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Comprobacion de salud del contenedor
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # index.html nunca se cachea: asi cada despliegue se ve de inmediato
+    location = /index.html {
+        expires -1;
+    }
+
+    # JS, CSS y fuentes llevan hash en el nombre: se pueden cachear un año
+    location ~* \.(?:js|css|woff2?|ttf|eot)$ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    # Rutas de Angular: lo que no sea un archivo cae en index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
