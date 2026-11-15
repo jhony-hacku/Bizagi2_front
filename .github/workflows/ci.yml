@@ -122,3 +122,82 @@ jobs:
             docker tag "bizagi2-front:${GITHUB_SHA}" "$IMAGEN:$TAG"
             docker push "$IMAGEN:$TAG"
           done
+
+  # Solo en push a develop, y solo si la imagen paso tests y smoke test y ya se publico.
+  # El runner entra a la red de Tailscale como nodo efimero con tag:ci, que unicamente
+  # alcanza el SSH (22) y el HTTPS (443) de los contenedores tag:deploy.
+  deploy-staging:
+    name: Deploy a staging
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    timeout-minutes: 20
+    environment: staging
+    # Los despliegues a staging no se pisan entre si: el siguiente espera al anterior
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+
+    steps:
+      - name: Conectar a Tailscale
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Preparar SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          # tr quita los retornos de carro por si el secreto se pego desde Windows
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$STAGING_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+
+          # Direccion del servidor dentro de Tailscale (no depende del DNS del runner)
+          IP=$(tailscale ip -4 bizagi2-staging)
+          FQDN=$(tailscale status --json | jq -r '.Peer[] | select(.HostName == "bizagi2-staging") | .DNSName' | sed 's/\.$//')
+          if [ -z "$IP" ] || [ -z "$FQDN" ]; then
+            echo "No se encontro bizagi2-staging en la red de Tailscale"
+            tailscale status
+            exit 1
+          fi
+          echo "STAGING_IP=$IP" >> "$GITHUB_ENV"
+          echo "STAGING_FQDN=$FQDN" >> "$GITHUB_ENV"
+
+          # HostKeyAlias: la huella guardada esta a nombre de "bizagi2-staging"
+          {
+            echo "Host staging"
+            echo "  HostName $IP"
+            echo "  User deploy"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  IdentitiesOnly yes"
+            echo "  HostKeyAlias bizagi2-staging"
+            echo "  StrictHostKeyChecking yes"
+          } > ~/.ssh/config
+
+      # Descarga solo la imagen nueva y recrea lo que cambio. --wait espera a que todo quede "healthy"
+      - name: Desplegar
+        run: |
+          ssh staging 'cd /opt/bizagi2 && docker compose pull front && docker compose up -d --wait --wait-timeout 420 && docker image prune -f && docker compose ps'
+
+      # Comprueba la app de punta a punta, por el mismo HTTPS que usan las personas
+      - name: Verificar que staging responde
+        run: |
+          URL="https://$STAGING_FQDN"
+          for i in $(seq 1 24); do
+            SALUD=$(curl -s -o /dev/null -w '%{http_code}' --resolve "$STAGING_FQDN:443:$STAGING_IP" "$URL/healthz" || true)
+            API=$(curl -s -o /dev/null -w '%{http_code}' --resolve "$STAGING_FQDN:443:$STAGING_IP" "$URL/api/auth/csrf" || true)
+            if [ "$SALUD" = "200" ] && [ "$API" = "204" ]; then
+              echo "Staging responde: front $SALUD, backend $API"
+              exit 0
+            fi
+            echo "Intento $i: front $SALUD, backend $API"
+            sleep 5
+          done
+          echo "Staging no respondio a tiempo"
+          ssh staging 'cd /opt/bizagi2 && docker compose ps && docker compose logs --tail 40 backend'
+          exit 1
