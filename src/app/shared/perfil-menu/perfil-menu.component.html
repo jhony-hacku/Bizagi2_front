@@ -50,6 +50,9 @@
       }
 
       <hr />
+      @if (errorCierre()) {
+        <p role="alert">{{ errorCierre() }}</p>
+      }
 
       <button type="button" class="opcion salir" role="menuitem" [disabled]="cerrando()" (click)="cerrarSesion()">
         <svg viewBox="0 0 24 24" aria-hidden="true">
