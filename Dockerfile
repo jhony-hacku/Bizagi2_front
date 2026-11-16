@@ -1,20 +1,26 @@
-# ---------- Etapa 1: compilar ----------
-FROM node:24-alpine AS build
+# ---------- Etapa 1: compilar la app Angular ----------
+# Imagen Debian (glibc): evita problemas con dependencias nativas del build en Alpine
+FROM node:24-slim AS build
 WORKDIR /app
 
+# Primero solo los manifiestos: la capa de dependencias se reutiliza si no cambian
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
-COPY angular.json tsconfig.json tsconfig.app.json ./
-COPY public public
-COPY src src
-RUN npx ng build --configuration production
+COPY . .
+RUN npm run build
 
-# ---------- Etapa 2: servir con nginx ----------
-FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/40-resolver.sh /docker-entrypoint.d/40-resolver.sh
-RUN chmod +x /docker-entrypoint.d/40-resolver.sh
+# ---------- Etapa 2: servir con nginx (sin root) ----------
+FROM nginxinc/nginx-unprivileged:stable-alpine
+
+# La imagen procesa /etc/nginx/templates/*.template con envsubst al arrancar
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist/bizagi2-front/browser /usr/share/nginx/html
 
-EXPOSE 80
+# A donde se reenvia /api (nombre del servicio del backend en Docker Compose)
+ENV BACKEND_URL=http://backend:8080
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1

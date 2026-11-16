@@ -1,6 +1,22 @@
-node_modules
-dist
-.angular
-.git
+# Dependencias y salidas de build: se generan dentro de la imagen
+node_modules/
+dist/
+.angular/
+out-tsc/
+
+# Control de versiones y CI
+.git/
+.github/
+
+# Entornos de desarrollo
+.idea/
+.vscode/
+
+# Secretos locales
+.env
+.env.*
+
+# No hacen falta en el build
 *.md
-.claude
+Dockerfile
+.dockerignore
