@@ -247,14 +247,22 @@ jobs:
       - name: Pruebas E2E con Selenium
         run: mvn -B -f e2e/pom.xml test -De2e.baseUrl="$STAGING_URL"
 
-      # Si algo falla quedan las capturas de pantalla y el reporte para revisarlo
-      - name: Guardar capturas y reportes
+      # La tabla de resultados queda visible en la pagina de la ejecucion, sin descargar nada
+      - name: Publicar resumen de las pruebas
+        if: always()
+        run: |
+          if [ -f e2e/target/evidencias/resumen.md ]; then
+            cat e2e/target/evidencias/resumen.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Reporte HTML con la captura final de cada prueba (pase o falle) y los reportes de Maven
+      - name: Guardar evidencias
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-selenium
+          name: e2e-evidencias
           path: |
-            e2e/target/screenshots/
+            e2e/target/evidencias/
             e2e/target/surefire-reports/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 14
