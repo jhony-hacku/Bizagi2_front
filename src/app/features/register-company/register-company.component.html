@@ -1,7 +1,7 @@
 <div class="register-page">
   <form class="register-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <h1>Registra tu empresa</h1>
-    <p class="subtitle">Crea el espacio de tu organización y su cuenta administradora</p>
+    <p class="subtitle">Crea el espacio de tu organización y tu cuenta de creador</p>
 
     <label for="nombreEmpresa">Nombre de la empresa</label>
     <input id="nombreEmpresa" type="text" formControlName="nombreEmpresa" placeholder="Acme S.A.S." />
@@ -26,13 +26,13 @@
       <span class="field-error">Ingresa un correo válido.</span>
     }
 
-    <label for="nombre">Nombre del administrador</label>
+    <label for="nombre">Nombre del creador</label>
     <input id="nombre" type="text" formControlName="nombre" autocomplete="name" placeholder="Ana Pérez" />
     @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
-      <span class="field-error">El nombre del administrador es obligatorio.</span>
+      <span class="field-error">El nombre del creador es obligatorio.</span>
     }
 
-    <label for="email">Correo del administrador (para iniciar sesión)</label>
+    <label for="email">Correo del creador (para iniciar sesión)</label>
     <input
       id="email"
       type="email"
