@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/organizacion.service';
-import { RolAcceso } from '../../core/models/auth.model';
+import { ETIQUETA_ROL, RolAsignable } from '../../core/models/auth.model';
 import { Usuario } from '../../core/models/organizacion.model';
 import { errorMessage } from '../../core/utils/http-error';
 import { AppHeaderComponent } from '../../shared/app-header/app-header.component';
@@ -32,25 +32,18 @@ export class UsuariosComponent {
   protected readonly formAbierto = signal(false);
   protected readonly editando = signal<Usuario | null>(null);
 
-  protected readonly roles: { valor: RolAcceso; etiqueta: string }[] = [
-    { valor: 'ADMINISTRADOR', etiqueta: 'Administrador' },
-    { valor: 'EDITOR', etiqueta: 'Editor' },
-    { valor: 'LECTOR', etiqueta: 'Solo lectura' },
-  ];
+  protected readonly roles: readonly RolAsignable[] = ['ADMINISTRADOR', 'EDITOR', 'LECTOR'];
+  protected readonly etiquetas = ETIQUETA_ROL;
 
   protected readonly form = this.fb.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.minLength(8)]],
-    rolAcceso: ['EDITOR' as RolAcceso, Validators.required],
+    rolAcceso: ['EDITOR' as RolAsignable, Validators.required],
   });
 
   constructor() {
     this.cargar();
-  }
-
-  protected etiquetaRol(rol: RolAcceso): string {
-    return this.roles.find((r) => r.valor === rol)?.etiqueta ?? rol;
   }
 
   protected cargar(): void {
@@ -81,7 +74,7 @@ export class UsuariosComponent {
       nombre: usuario.nombre,
       email: usuario.email,
       password: '',
-      rolAcceso: usuario.rolAcceso,
+      rolAcceso: usuario.rolAcceso === 'CREADOR' ? 'EDITOR' : usuario.rolAcceso,
     });
     this.form.controls.password.setValidators([Validators.minLength(8)]);
     this.form.controls.password.updateValueAndValidity();
@@ -106,7 +99,7 @@ export class UsuariosComponent {
       ? this.usuarioService.actualizar(actual.id, {
           nombre,
           email,
-          rolAcceso,
+          ...(actual.rolAcceso === 'CREADOR' ? {} : { rolAcceso }),
           ...(password ? { password } : {}),
         })
       : this.usuarioService.crear({ nombre, email, password, rolAcceso });
