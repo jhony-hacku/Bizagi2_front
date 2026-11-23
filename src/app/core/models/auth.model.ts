@@ -1,6 +1,14 @@
 // Contratos de /api/auth/login, /api/auth/register y /api/auth/logout
 
-export type RolAcceso = 'ADMINISTRADOR' | 'EDITOR' | 'LECTOR';
+export type RolAcceso = 'CREADOR' | 'ADMINISTRADOR' | 'EDITOR' | 'LECTOR';
+export type RolAsignable = Exclude<RolAcceso, 'CREADOR'>;
+
+export const ETIQUETA_ROL: Record<RolAcceso, string> = {
+  CREADOR: 'Creador',
+  ADMINISTRADOR: 'Administrador',
+  EDITOR: 'Editor',
+  LECTOR: 'Solo lectura',
+};
 
 export interface LoginRequest {
   email: string;

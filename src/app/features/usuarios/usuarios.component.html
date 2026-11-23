@@ -28,14 +28,16 @@
               <span class="field-error">Ingresa un correo válido.</span>
             }
           </div>
-          <div class="stack">
-            <label for="rolAcceso">Rol de acceso</label>
-            <select id="rolAcceso" formControlName="rolAcceso">
-              @for (r of roles; track r.valor) {
-                <option [value]="r.valor">{{ r.etiqueta }}</option>
-              }
-            </select>
-          </div>
+          @if (editando()?.rolAcceso !== 'CREADOR') {
+            <div class="stack">
+              <label for="rolAcceso">Rol de acceso</label>
+              <select id="rolAcceso" formControlName="rolAcceso">
+                @for (rol of roles; track rol) {
+                  <option [value]="rol">{{ etiquetas[rol] }}</option>
+                }
+              </select>
+            </div>
+          }
           <div class="stack">
             <label for="password">{{ editando() ? 'Nueva contraseña (opcional)' : 'Contraseña temporal' }}</label>
             <input id="password" type="password" formControlName="password" autocomplete="new-password" />
@@ -77,15 +79,17 @@
                 <strong>{{ u.nombre }}</strong>
                 <span class="sub">{{ u.email }}</span>
               </td>
-              <td>{{ etiquetaRol(u.rolAcceso) }}</td>
+              <td>{{ etiquetas[u.rolAcceso] }}</td>
               <td>
                 <span class="badge" [class.ok]="u.activo" [class.bad]="!u.activo">
                   {{ u.activo ? 'Activo' : 'Inactivo' }}
                 </span>
               </td>
               <td class="acciones">
-                <button type="button" class="link" (click)="editar(u)">Editar</button>
-                @if (u.id !== yo()?.usuarioId) {
+                @if (u.rolAcceso !== 'CREADOR' || u.id === yo()?.usuarioId) {
+                  <button type="button" class="link" (click)="editar(u)">Editar</button>
+                }
+                @if (u.rolAcceso !== 'CREADOR' && u.id !== yo()?.usuarioId) {
                   <button type="button" class="link" [class.danger]="u.activo" (click)="alternarActivo(u)">
                     {{ u.activo ? 'Desactivar' : 'Activar' }}
                   </button>

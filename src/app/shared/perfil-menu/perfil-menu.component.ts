@@ -1,13 +1,7 @@
 import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { RolAcceso } from '../../core/models/auth.model';
-
-const ETIQUETA_ROL: Record<RolAcceso, string> = {
-  ADMINISTRADOR: 'Administrador',
-  EDITOR: 'Editor',
-  LECTOR: 'Solo lectura',
-};
+import { ETIQUETA_ROL } from '../../core/models/auth.model';
 
 // Panel de perfil (arriba a la derecha): datos de la sesión y cierre de sesión
 @Component({

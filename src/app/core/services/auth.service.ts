@@ -13,8 +13,11 @@ export class AuthService {
 
   readonly currentUser = computed(() => this.session());
   readonly isAuthenticated = computed(() => this.session() !== null);
-  readonly puedeEscribir = computed(() => ['ADMINISTRADOR', 'EDITOR'].includes(this.session()?.rolAcceso ?? ''));
-  readonly esAdministrador = computed(() => this.session()?.rolAcceso === 'ADMINISTRADOR');
+  readonly esAdministrador = computed(() => {
+    const rol = this.session()?.rolAcceso;
+    return rol === 'CREADOR' || rol === 'ADMINISTRADOR';
+  });
+  readonly puedeEscribir = computed(() => this.esAdministrador() || this.session()?.rolAcceso === 'EDITOR');
 
   constructor(private readonly http: HttpClient) {
     localStorage.removeItem('bizagi2_session');

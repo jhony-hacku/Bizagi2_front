@@ -1,6 +1,6 @@
 // Contratos de /api/usuarios, /api/empresa y /api/roles-proceso
 
-import { RolAcceso } from './auth.model';
+import { RolAcceso, RolAsignable } from './auth.model';
 
 export interface Usuario {
   id: number;
@@ -15,14 +15,14 @@ export interface UsuarioCreateRequest {
   nombre: string;
   email: string;
   password: string;
-  rolAcceso: RolAcceso;
+  rolAcceso: RolAsignable;
 }
 
 export interface UsuarioUpdateRequest {
   nombre?: string;
   email?: string;
   password?: string;
-  rolAcceso?: RolAcceso;
+  rolAcceso?: RolAsignable;
 }
 
 export interface Empresa {
