@@ -2,6 +2,17 @@
 # por la variable de entorno. Las variables propias de nginx ($uri, $host...)
 # no se tocan porque no existen como variables de entorno.
 
+# Esquema original (https) que informa Tailscale Serve/Funnel; si no llega, el de esta conexion.
+map $http_x_forwarded_proto $esquema_original {
+    default $http_x_forwarded_proto;
+    ""      $scheme;
+}
+
+# Log de acceso con la IP real del usuario y, entre parentesis, de donde llego la conexion
+# (Tailscale a traves de Docker). Sirve para comprobar que la IP real se esta resolviendo.
+log_format ip_real '$remote_addr (via $realip_remote_addr) - [$time_local] "$request" '
+                   '$status $body_bytes_sent "$http_user_agent"';
+
 server {
     listen 8080;
     server_name _;
@@ -12,6 +23,21 @@ server {
     # DNS interno de Docker. Junto con la variable en proxy_pass hace que nginx
     # vuelva a resolver el backend cuando se redespliega y cambia de IP.
     resolver 127.0.0.11 valid=10s ipv6=off;
+
+    access_log /var/log/nginx/access.log ip_real;
+
+    # IP real del usuario. Las peticiones llegan de Tailscale (Serve o Funnel) a 127.0.0.1:8080
+    # y Docker las entrega desde la IP de su puerta de enlace, asi que $remote_addr seria la misma
+    # para todos. Solo se confia en X-Forwarded-For cuando la conexion viene de esas redes privadas;
+    # el puerto solo se publica en 127.0.0.1, asi que nadie de fuera puede enviar este encabezado
+    # directamente. real_ip_recursive toma la ultima IP no confiable de la lista, por lo que una IP
+    # falsa que el cliente anteponga en X-Forwarded-For se ignora.
+    set_real_ip_from 127.0.0.1;
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
 
     gzip on;
     gzip_min_length 1024;
@@ -27,9 +53,11 @@ server {
         proxy_pass $backend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
+        # $remote_addr ya es la IP real (ver set_real_ip_from). Se envia sola, sin la lista que
+        # trajo el cliente, para que el backend no pueda ser enganado con IPs inventadas.
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $esquema_original;
         proxy_read_timeout 60s;
     }
 
